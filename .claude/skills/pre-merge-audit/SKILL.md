@@ -1,4 +1,7 @@
-Run a pre-merge audit of the current changes against the SuMS project rules in CLAUDE.md. Checks marked **[automated]** are enforced by husky hooks — confirm the hooks are active, then focus your review on the manual checks below.
+---
+
+name: pre-merge-audit
+description: Run a pre-merge audit of the current changes against the SuMS project rules in CLAUDE.md. Checks marked **[automated]** are enforced by husky hooks — confirm the hooks are active, then focus your review on the manual checks below. Use after introducing new features or bug fixes, and before making pull request.
 
 ---
 

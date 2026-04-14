@@ -1,13 +1,13 @@
-# Agentic SWE Taskforce
+# AI-First Taskforce
 
-Knowledge repository for the Agentic Software Engineering Taskforce. This repo collects best practices, templates, and lessons learned from trials where non-engineer practitioners build production software with Claude Code.
+Knowledge repository for the AI-First Taskforce. This repo collects best practices, templates, and lessons learned from trials where non-engineer practitioners build production software with Claude Code.
 
 ---
 
 ## What's here
 
 ```
-agentic-swe-taskforce/
+ai-first-taskforce/
 ├── templates/
 │   ├── CLAUDE.md           Generalized CLAUDE.md — copy to a new project before build week
 │   ├── trial-review.md     Blank post-trial review template
@@ -31,8 +31,8 @@ The `skills/` directory contains two Claude Code custom commands. Copy them into
 
 ```bash
 mkdir -p .claude/commands
-cp path/to/agentic-swe-taskforce/skills/skills.md .claude/commands/skills.md
-cp path/to/agentic-swe-taskforce/skills/review-pr.md .claude/commands/review-pr.md
+cp path/to/ai-first-taskforce/skills/skills.md .claude/commands/skills.md
+cp path/to/ai-first-taskforce/skills/review-pr.md .claude/commands/review-pr.md
 ```
 
 Commit `.claude/commands/` to the project repo so the skills are available to everyone working in it.

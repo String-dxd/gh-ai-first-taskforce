@@ -1,4 +1,7 @@
-Run a full pre-merge review of the current PR branch: rebase onto main, resolve any merge conflicts, analyse changes, check test coverage, scan for CLAUDE.md violations, run build and unit tests, document new gap patterns, then work through a sequential TODO list of fixes — each committed separately.
+---
+
+name: review-pr
+description: Run a full pre-merge review of the current PR branch: rebase onto main, resolve any merge conflicts, analyse changes, check test coverage, scan for CLAUDE.md violations, run build and unit tests, document new gap patterns, then work through a sequential TODO list of fixes — each committed separately. Use when user says "review code".
 
 ---
 

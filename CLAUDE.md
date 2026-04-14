@@ -1,4 +1,4 @@
-# CLAUDE.md — Agentic SWE Taskforce Repo
+# CLAUDE.md — AI-First Taskforce Repo
 
 Rules for working in this repository. This repo is a documentation and templates repo, not an application repo.
 
@@ -6,7 +6,7 @@ Rules for working in this repository. This repo is a documentation and templates
 
 ## Purpose
 
-This repo holds knowledge artifacts from the Agentic SWE Taskforce: trial reviews, generalized templates, and best-practice rules derived from real project trials.
+This repo holds knowledge artifacts from the AI-First Taskforce: trial reviews, generalized templates, and best-practice rules derived from real project trials.
 
 ---
 
