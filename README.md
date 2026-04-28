@@ -4,6 +4,29 @@ Knowledge repository for the AI-First Taskforce. This repo collects best practic
 
 ---
 
+## Goals
+
+The AI-First Taskforce aims to increase developer productivity through practical application of generative AI in software engineering workflows.
+
+### Ongoing projects
+
+| Project | Description |
+|---|---|
+| Templatized skills (this repo) | Reusable Claude Code skills and CLAUDE.md templates that any team can adopt, derived from real project trials. |
+| [Personal data detection](https://github.com/String-sg/personal-data-detection-tools) | Tooling to detect personal data in codebases and datasets before they reach production or external services. |
+
+### Ideas under exploration
+
+**Local codebase sensitivity scanner**
+
+Scan a local codebase using a local LLM — no data leaves the device — to determine its sensitivity and information classification. The output determines which deployment environment the project is eligible for (Greenlane OPEN, OFFICIAL, or OFFICIAL-CLOSED), without risking data exposure during the scan itself.
+
+**Data masking for restricted projects**
+
+For projects that cannot be deployed to commercial or cloud LLM environments, explore an LLM-assisted pipeline to mask sensitive data and copywriting before it reaches an external model — expanding the scope of projects that can benefit from AI tooling without compromising data handling requirements.
+
+---
+
 ## What's here
 
 ```
