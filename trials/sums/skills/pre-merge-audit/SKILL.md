@@ -1,11 +1,25 @@
 ---
 
 name: pre-merge-audit
-description: Run a pre-merge audit of the current changes against the SuMS project rules in CLAUDE.md. Checks marked **[automated]** are enforced by husky hooks — confirm the hooks are active, then focus your review on the manual checks below. Use after introducing new features or bug fixes, and before making pull request.
+description: Run a pre-merge audit of the current changes against the SuMS project rules in CLAUDE.md. Each check is classified as [AUTOMATED] (husky hooks), [AGENT E2E] (shell/grep verifiable), or [HUMAN REQUIRED] (requires human execution). Auth flows through OTPaaS or government SSO are always [HUMAN REQUIRED] — agent E2E is structurally blocked. Use after introducing new features or bug fixes, and before making a pull request.
 
 ---
 
-## Automated checks (husky)
+## Criterion Classification
+
+Each check in this audit is classified as one of:
+
+- **[AUTOMATED]** — enforced by a husky pre-commit or pre-push hook. No agent or human action is needed beyond confirming the hooks are installed.
+- **[AGENT E2E]** — verifiable by shell commands, grep, or automated test runs. The agent can execute and evaluate the result without human involvement.
+- **[HUMAN REQUIRED]** — requires a human to manually execute and observe. Cannot be satisfied by agent tooling.
+
+> **Auth flows are always [HUMAN REQUIRED].** Any criterion that passes through the login flow — OTP request, OTP delivery via OTPaaS, code entry, session creation, or logout — must be tested by a human. Agent E2E is **structurally blocked**: OTP delivery requires a real inbox, and OTPaaS requires a government-registered email that cannot be provisioned in an automated test environment.
+
+---
+
+## Automated checks [AUTOMATED]
+
+All checks in this section are enforced by husky hooks. Confirm the hooks are active; no further action is needed for these items.
 
 | Check | Hook | Trigger |
 |---|---|---|
@@ -25,9 +39,9 @@ cat .husky/pre-push
 
 ---
 
-## Manual checks (require judgment)
+## Agent-verifiable checks [AGENT E2E]
 
-### 1. Credentials & Secrets
+### 1. Credentials & Secrets [AGENT E2E]
 
 - Confirm `.env.example` is tracked by git: `git ls-files .env.example`
 - Confirm `.gitignore` does not use `env*` wildcard: `grep "env\*" .gitignore`
@@ -37,7 +51,7 @@ cat .husky/pre-push
 
 ---
 
-### 2. Code Organisation
+### 2. Code Organisation [AGENT E2E]
 
 - Check for shared lookup data (arrays of categories, enums, static lists) declared as local variables in page files rather than imported from `lib/`:
   ```
@@ -50,14 +64,14 @@ cat .husky/pre-push
 
 ---
 
-### 3. Docker & Prisma
+### 3. Docker & Prisma [AGENT E2E]
 
 If `Dockerfile` or `prisma/` was changed (hook catches the COPY rule — verify the rest):
 - Confirm `prisma migrate deploy` is present in the deployment runbook or startup script.
 
 ---
 
-### 4. Raw SQL Queries
+### 4. Raw SQL Queries [AGENT E2E]
 
 If any file in the diff contains `$queryRaw`, `$executeRaw`, `$queryRawUnsafe`, `$executeRawUnsafe`, or `Prisma.raw`:
 
@@ -76,7 +90,7 @@ For each match, verify:
 
 ---
 
-### 5. Infrastructure
+### 5. Infrastructure [AGENT E2E]
 
 If any infrastructure code (`terraform/`, `*.tf`, Dockerfile, CI/CD pipeline configs) was changed:
 - Confirm no KMS configuration was modified without an explicit comment explaining the human review that approved it.
@@ -87,7 +101,7 @@ If any infrastructure code (`terraform/`, `*.tf`, Dockerfile, CI/CD pipeline con
 
 ---
 
-### 6. Environment Configuration
+### 6. Environment Configuration [AGENT E2E]
 
 - Confirm `.env.example` is up to date — every `process.env.X` referenced in the codebase should have a placeholder entry:
   ```
@@ -100,18 +114,97 @@ If any infrastructure code (`terraform/`, `*.tf`, Dockerfile, CI/CD pipeline con
 
 ---
 
+### 7. Test Plan Coverage [AGENT E2E]
+
+Extract the test plan from the PR description (section headed "Test plan", "Steps to test", "Testing", or "How to test"). For each step:
+
+1. Identify 2–3 keywords from the step (e.g. "prefill", "resetForm", "division", "empty").
+2. Search for those keywords across all test files:
+   ```
+   grep -rn "<keyword>" src/test/ tests/api/ --include="*.test.ts" --include="*.test.tsx"
+   ```
+3. If no test file contains a match for a step: flag it as uncovered.
+
+If the PR description has no test plan section at all: flag it as missing.
+
+> **Note:** Test plan steps that exercise the login flow or OTP delivery cannot be covered by automated tests. Do not flag these as automated-coverage gaps — they belong in the [HUMAN REQUIRED] auth checklist (Section 8) instead.
+
+**Block on:** any non-auth test plan step with no corresponding automated test coverage.
+
+---
+
+## Human-required checks [HUMAN REQUIRED]
+
+### 8. Auth & Login Flow Testing [HUMAN REQUIRED]
+
+> **Agent E2E is structurally blocked for this entire section.**
+> OTP delivery requires a real inbox. OTPaaS requires a government-registered email address. No agent tool can execute or verify these flows end-to-end. A human tester must complete every applicable item below.
+
+**Applies when any of the following paths appear in the diff:**
+
+```bash
+git diff main...HEAD --name-only | grep -E "(app/\(auth\)|app/login|lib/otpaas|app/api/auth|next-auth|nextauth|middleware\.ts)"
+```
+
+If no auth-related paths are found: mark this section **N/A**.
+
+If applicable, a human tester must verify all of the following before the branch is merge-ready:
+
+**OTP request flow:**
+- [ ] Enter a registered email address on the login page and submit
+- [ ] Confirm the OTP email arrives in the inbox within the expected time
+- [ ] Confirm the "Resend code" button is disabled during the request round-trip and re-enabled after
+
+**OTP entry & session creation:**
+- [ ] Enter the correct OTP code → confirm redirect to the expected post-login page
+- [ ] Enter an incorrect OTP code → confirm a clear, user-friendly error message is shown (no raw JSON blob)
+- [ ] Enter an expired OTP code → confirm an appropriate error message is shown
+
+**Error handling:**
+- [ ] Enter an unregistered email address → confirm a user-friendly error is shown (not `code: 2005` raw from OTPaaS)
+- [ ] Submit with an empty email field → confirm client-side validation blocks submission
+
+**Session persistence & logout:**
+- [ ] Refresh the page after login → confirm the session is preserved and the user remains logged in
+- [ ] Click logout → confirm the session is destroyed and the user is redirected to the login page
+- [ ] After logout, navigate directly to a protected route → confirm redirect back to login
+
+**Block on:** any of the above steps failing.
+
+---
+
 ## Summary
 
-After reviewing, output a table:
+After reviewing, output two distinct sections.
 
-| Check | Status | Findings |
-|---|---|---|
-| Husky hooks active | PASS / FAIL | |
-| Credentials & Secrets | PASS / FAIL | |
-| Code Organisation | PASS / WARN | |
-| Docker & Prisma | PASS / FAIL / N/A | |
-| Raw SQL Queries | PASS / FAIL / N/A | |
-| Infrastructure | PASS / FAIL / N/A | |
-| Environment Config | PASS / FAIL | |
+### Agent-Verifiable Results
+
+| Check | Classification | Status | Findings |
+|---|---|---|---|
+| Husky hooks active | AUTOMATED | PASS / FAIL | |
+| Credentials & Secrets | AGENT E2E | PASS / FAIL | |
+| Code Organisation | AGENT E2E | PASS / WARN | |
+| Docker & Prisma | AGENT E2E | PASS / FAIL / N/A | |
+| Raw SQL Queries | AGENT E2E | PASS / FAIL / N/A | |
+| Infrastructure | AGENT E2E | PASS / FAIL / N/A | |
+| Environment Config | AGENT E2E | PASS / FAIL | |
+| Test Plan Coverage | AGENT E2E | PASS / FAIL / N/A | |
 
 **FAIL on any Critical or High item = not merge-ready.** WARN items should be resolved before go-live but do not block merge.
+
+### Human Testing Required
+
+Output this block every time — it must not be omitted even when no other issues are found:
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+HUMAN TESTING REQUIRED — NOT SATISFIED BY THIS AUDIT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Auth & Login Flow Testing (Section 8):  APPLICABLE / N/A
+
+If APPLICABLE: a human tester must complete all steps in Section 8
+before this branch is merge-ready.
+
+The agent audit above does NOT satisfy this gate.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```

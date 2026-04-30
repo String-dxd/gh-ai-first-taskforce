@@ -145,6 +145,98 @@ If no such section exists in the PR body: add to TODO (LOW) — `docs: add test 
 - `TS_TSX_CHANGED` — subset of CHANGED_FILES matching `*.ts` / `*.tsx`
 - `TEST_PLAN_STEPS` — extracted steps from the PR test plan
 - `FULL_DIFF` — output of `git diff main...HEAD`
+- `AUTH_TESTING_REQUIRED` — true if any auth/login paths appear in CHANGED_FILES (set in the next section)
+
+---
+
+## Human Testing Required — Merge Gate
+
+This section runs immediately after Phase 1. It is a top-level gate and must not be buried in the TODO list or treated as an optional check. It appears here — before any automated checks — because it cannot be satisfied by the agent at all.
+
+### Detect applicable criteria
+
+```bash
+echo "$CHANGED_FILES" | grep -E "(app/\(auth\)|app/login|lib/otpaas|app/api/auth|next-auth|nextauth|middleware\.ts)"
+```
+
+If any matches are found: `AUTH_TESTING_REQUIRED=true`. Otherwise: `AUTH_TESTING_REQUIRED=false`.
+
+### Output the callout
+
+Always print the following block — do not skip it even when `AUTH_TESTING_REQUIRED=false`:
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+HUMAN TESTING REQUIRED — MERGE GATE
+These checks cannot be verified by the agent. A human tester must
+complete them before this branch can merge. This review's output
+does NOT satisfy this gate.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+**If `AUTH_TESTING_REQUIRED=true`**, list the following for the human tester:
+
+```
+Auth & Login Flow Testing [HUMAN REQUIRED]
+─────────────────────────────────────────
+Agent E2E is structurally blocked: OTP delivery requires a real inbox
+and OTPaaS requires a government-registered email. These steps must be
+completed by a human tester.
+
+OTP request flow:
+  □ Enter a registered email and submit the login form
+  □ Confirm OTP email arrives in the inbox
+  □ Confirm Resend button is disabled during round-trip, re-enabled after
+
+OTP entry & session:
+  □ Correct OTP → redirect to expected post-login page
+  □ Incorrect OTP → user-friendly error, no raw JSON blob
+  □ Expired OTP → appropriate error message
+
+Error states:
+  □ Unregistered email → user-friendly error (not raw "code: 2005")
+  □ Empty email field → client-side validation blocks submission
+
+Session & logout:
+  □ Page refresh after login → session preserved
+  □ Logout → session destroyed, redirect to login page
+  □ Direct navigation to protected route after logout → redirect to login
+```
+
+**If `AUTH_TESTING_REQUIRED=false`**:
+
+```
+Auth & Login Flow Testing: N/A — no auth/login paths detected in this diff.
+If the diff touches the login flow indirectly, verify manually.
+```
+
+### Add the merge gate checklist item to the PR body
+
+Append a `Human Testing Gate` section to the PR body. This item must be **checked by a human** — not the agent — before the PR is merged.
+
+```bash
+CURRENT_BODY=$(gh pr view --json body -q '.body')
+
+gh pr edit --body "${CURRENT_BODY}
+
+---
+
+## Human Testing Gate
+
+> **This item must be manually checked before merging.** The automated PR review above does not satisfy this gate.
+
+- [ ] Human testing completed — all \`[HUMAN REQUIRED]\` criteria in the pre-merge audit have been manually verified by a human tester (see Human Testing Required section above)"
+```
+
+Confirm the PR body was updated:
+
+```bash
+gh pr view --json body -q '.body' | tail -15
+```
+
+State to the user:
+
+> "A 'Human Testing Gate' checklist item has been appended to the PR body. **A human must check this box before the PR can be merged.** This review's output alone does not satisfy this gate."
 
 ---
 
