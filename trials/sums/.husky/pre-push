@@ -1,0 +1,40 @@
+# Load nvm so npm/npx are available in husky's minimal PATH
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
+# 2. Dependency audit — block push if high/critical vulnerabilities exist
+npm audit --audit-level=high
+
+# 3a. Type safety — block push if project does not compile cleanly
+npx tsc --noEmit
+
+# 4. Unit tests — block push if any test fails
+npm test
+
+# 5. Integration tests — run when DB-related files changed and postgres-test is running
+EMPTY_TREE="4b825dc642cb6eb9a060e54bf8d69288fbee4904"
+DB_PATTERNS="^(prisma/|src/app/api/|src/lib/|tests/api/)"
+run_integration=false
+
+while read local_ref local_sha remote_ref remote_sha; do
+  if [ "$remote_sha" = "0000000000000000000000000000000000000000" ]; then
+    range="$EMPTY_TREE..$local_sha"
+  else
+    range="$remote_sha..$local_sha"
+  fi
+  if git diff --name-only "$range" 2>/dev/null | grep -qE "$DB_PATTERNS"; then
+    run_integration=true
+    break
+  fi
+done
+
+if [ "$run_integration" = true ]; then
+  if docker compose -f docker-compose.local.yml ps postgres-test 2>/dev/null | grep -q "running"; then
+    echo "DB-related changes detected — running integration tests against local postgres-test..."
+    npm run test:api:local
+  else
+    echo "Warning: DB-related changes detected but postgres-test is not running."
+    echo "  Start it with: docker compose -f docker-compose.local.yml up -d postgres-test"
+    echo "  Skipping integration tests."
+  fi
+fi

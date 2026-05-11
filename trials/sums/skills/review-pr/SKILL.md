@@ -522,6 +522,47 @@ npm run test:api  # for integration tests (if DB available)
 
 ---
 
+## Phase 7 — Human Review Checklist
+
+Render this section **after** Phase 6. It lists things that automated checks cannot verify and that a human must sign off on before merging.
+
+Work through each category below and output a checklist of items that apply to this PR. Omit categories where nothing applies — do not output empty sections.
+
+### A. Security-sensitive new code
+Any new file or function that handles authentication, session tokens, credentials, or access control. Claude can verify it compiles and follows patterns, but a human must confirm the logic is correct and the trust boundary is right.
+
+Check for:
+- New files under `src/lib/auth/`
+- New server actions that set cookies or call `signOut`/`signIn`
+- Any new bypass, backdoor, or dev-shortcut logic
+
+For each: flag the file and the specific question (e.g. "Is the `NODE_ENV !== 'production'` guard sufficient for the test environment?")
+
+### B. Skipped or `.skip`-marked tests
+```bash
+grep -rn "\.skip\|test\.skip\|it\.skip\|describe\.skip\|skipTest\|@pytest.mark.skip" e2e/ src/test/ tests/ 2>/dev/null
+```
+
+For each skipped test: state the test name and the reason from the PR description or code comment. Flag if no reason is documented.
+
+### C. Manual test plan steps
+From `TEST_PLAN_STEPS` extracted in Phase 1: list any steps marked unchecked (`- [ ]`) in the PR description that are not covered by automated tests. These require a human to run manually before merge.
+
+### D. Schema or API contract changes
+Any change to `prisma/schema.prisma`, `src/lib/api/schemas.ts`, or a route handler's request/response shape. These affect existing callers and may require manual verification that downstream behaviour is correct.
+
+For each: state the field/endpoint changed and the question (e.g. "Does null staffProportion correctly route students-only surveys to the conflict-check step rather than a 409?")
+
+### E. Conflict resolutions from Phase 0
+If the rebase in Phase 0 produced any conflicts that were resolved automatically: list each resolved file and a one-line description of how it was resolved. A human should confirm the merge intent was correct.
+
+If no conflicts occurred: omit this section.
+
+### F. Environment-specific behaviour
+Any code whose behaviour differs across local/test/prod that was not already gated by an existing pattern. Flag if the gating condition may behave unexpectedly in a non-local environment (e.g. a `NODE_ENV` check in a test-environment deploy).
+
+---
+
 ## Commit Message Convention
 
 ```

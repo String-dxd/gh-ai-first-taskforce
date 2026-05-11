@@ -1,0 +1,96 @@
+# Load nvm so npm/npx are available in husky's minimal PATH
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
+# 1. Secret scanning
+gitleaks protect --staged --verbose
+
+# 3b. Block `any` casts and eslint-disable comments in staged TS/JS additions
+if git diff --cached -- '*.ts' '*.tsx' '*.js' '*.jsx' | grep "^+" | grep -E "(eslint-disable|: any|as any)" > /dev/null 2>&1; then
+  echo "ERROR: Staged changes contain 'any' cast or eslint-disable comment."
+  echo "Model the correct type instead, or ask for clarification."
+  git diff --cached | grep "^+" | grep -E "(eslint-disable|: any|as any)"
+  exit 1
+fi
+
+# 5. Dockerfile: confirm COPY prisma ./prisma is present when Dockerfile is staged
+if git diff --cached --name-only | grep -q "^Dockerfile$"; then
+  if ! grep -q "COPY prisma ./prisma" Dockerfile; then
+    echo "ERROR: Dockerfile is staged but missing 'COPY prisma ./prisma'."
+    echo "Prisma apps require this line before 'RUN npx prisma generate'."
+    exit 1
+  fi
+fi
+
+# 7. Raw SQL safety: block $queryRawUnsafe and Prisma.raw() in staged TS/JS additions
+if git diff --cached --name-only | grep -qE "\.(tsx?|jsx?)$"; then
+  if git diff --cached -- '*.ts' '*.tsx' '*.js' '*.jsx' | grep "^+" | grep -E "(\\\$queryRawUnsafe|\\\$executeRawUnsafe|Prisma\.raw\()" > /dev/null 2>&1; then
+    echo "ERROR: Staged changes introduce \$queryRawUnsafe, \$executeRawUnsafe, or Prisma.raw()."
+    echo "These bypass Prisma's SQL injection protections."
+    echo "Use \$queryRaw/\$executeRaw with tagged template literals and Prisma.sql/Prisma.join instead."
+    echo "If this is intentional (e.g. dynamic identifiers), add a code comment explaining why and get a security review."
+    git diff --cached -- '*.ts' '*.tsx' '*.js' '*.jsx' | grep "^+" | grep -E "(\\\$queryRawUnsafe|\\\$executeRawUnsafe|Prisma\.raw\()"
+    exit 1
+  fi
+fi
+
+# 6. Build-time service connections: block prisma/fetch inside generateStaticParams
+if git diff --cached --name-only | grep -qE "\.(tsx|ts)$"; then
+  if git diff --cached | grep "^+" | grep -E "(prisma\.|fetch\()" | grep -iE "(generateStaticParams|getStaticProps)" > /dev/null 2>&1; then
+    echo "ERROR: Staged changes appear to add DB or API calls at Next.js build time."
+    echo "Use ISR or on-demand revalidation instead."
+    exit 1
+  fi
+fi
+
+# 8. E2e tests — run when src/, e2e/, or playwright.config.ts files are staged
+if git diff --cached --name-only | grep -qE "^(src/|e2e/|playwright\.config\.ts)"; then
+
+  # Check @playwright/test package is installed
+  if [ ! -f "node_modules/.bin/playwright" ]; then
+    echo ""
+    echo "ERROR: @playwright/test is not installed."
+    echo "Run: npm install"
+    echo ""
+    exit 1
+  fi
+
+  # Check playwright browsers are installed (OS-aware cache location)
+  if [ "$(uname)" = "Darwin" ]; then
+    _PW_CACHE="${PLAYWRIGHT_BROWSERS_PATH:-$HOME/Library/Caches/ms-playwright}"
+  else
+    _PW_CACHE="${PLAYWRIGHT_BROWSERS_PATH:-${XDG_CACHE_HOME:-$HOME/.cache}/ms-playwright}"
+  fi
+  if [ ! -d "$_PW_CACHE" ] || [ -z "$(ls -A "$_PW_CACHE" 2>/dev/null)" ]; then
+    echo ""
+    echo "ERROR: Playwright browsers are not installed."
+    echo "Run: npx playwright install"
+    echo ""
+    exit 1
+  fi
+
+  # Check .env.local exists (playwright.config.ts loads it for DATABASE_URL and NEXTAUTH_SECRET)
+  if [ ! -f ".env.local" ]; then
+    echo ""
+    echo "ERROR: .env.local not found. E2e tests need it for DATABASE_URL and NEXTAUTH_SECRET."
+    echo "Copy the example and fill in your local values:"
+    echo ""
+    echo "  cp .env.example .env.local"
+    echo ""
+    exit 1
+  fi
+
+  # Check local Postgres is running (global-setup seeds the DB before tests)
+  if ! docker compose -f docker-compose.local.yml ps --status running 2>/dev/null | grep -q "postgres"; then
+    echo ""
+    echo "ERROR: Local Postgres is not running. E2e tests need it for the seed step."
+    echo "Start it with:"
+    echo ""
+    echo "  docker compose -f docker-compose.local.yml up -d"
+    echo ""
+    exit 1
+  fi
+
+  echo "Running e2e tests (src/ or e2e/ files staged)..."
+  npm run test:e2e
+fi
