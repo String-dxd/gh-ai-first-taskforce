@@ -145,6 +145,98 @@ If no such section exists in the PR body: add to TODO (LOW) — `docs: add test 
 - `TS_TSX_CHANGED` — subset of CHANGED_FILES matching `*.ts` / `*.tsx`
 - `TEST_PLAN_STEPS` — extracted steps from the PR test plan
 - `FULL_DIFF` — output of `git diff main...HEAD`
+- `AUTH_TESTING_REQUIRED` — true if any auth/login paths appear in CHANGED_FILES (set in the next section)
+
+---
+
+## Human Testing Required — Merge Gate
+
+This section runs immediately after Phase 1. It is a top-level gate and must not be buried in the TODO list or treated as an optional check. It appears here — before any automated checks — because it cannot be satisfied by the agent at all.
+
+### Detect applicable criteria
+
+```bash
+echo "$CHANGED_FILES" | grep -E "(app/\(auth\)|app/login|lib/otpaas|app/api/auth|next-auth|nextauth|middleware\.ts)"
+```
+
+If any matches are found: `AUTH_TESTING_REQUIRED=true`. Otherwise: `AUTH_TESTING_REQUIRED=false`.
+
+### Output the callout
+
+Always print the following block — do not skip it even when `AUTH_TESTING_REQUIRED=false`:
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+HUMAN TESTING REQUIRED — MERGE GATE
+These checks cannot be verified by the agent. A human tester must
+complete them before this branch can merge. This review's output
+does NOT satisfy this gate.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+**If `AUTH_TESTING_REQUIRED=true`**, list the following for the human tester:
+
+```
+Auth & Login Flow Testing [HUMAN REQUIRED]
+─────────────────────────────────────────
+Agent E2E is structurally blocked: OTP delivery requires a real inbox
+and OTPaaS requires a government-registered email. These steps must be
+completed by a human tester.
+
+OTP request flow:
+  □ Enter a registered email and submit the login form
+  □ Confirm OTP email arrives in the inbox
+  □ Confirm Resend button is disabled during round-trip, re-enabled after
+
+OTP entry & session:
+  □ Correct OTP → redirect to expected post-login page
+  □ Incorrect OTP → user-friendly error, no raw JSON blob
+  □ Expired OTP → appropriate error message
+
+Error states:
+  □ Unregistered email → user-friendly error (not raw "code: 2005")
+  □ Empty email field → client-side validation blocks submission
+
+Session & logout:
+  □ Page refresh after login → session preserved
+  □ Logout → session destroyed, redirect to login page
+  □ Direct navigation to protected route after logout → redirect to login
+```
+
+**If `AUTH_TESTING_REQUIRED=false`**:
+
+```
+Auth & Login Flow Testing: N/A — no auth/login paths detected in this diff.
+If the diff touches the login flow indirectly, verify manually.
+```
+
+### Add the merge gate checklist item to the PR body
+
+Append a `Human Testing Gate` section to the PR body. This item must be **checked by a human** — not the agent — before the PR is merged.
+
+```bash
+CURRENT_BODY=$(gh pr view --json body -q '.body')
+
+gh pr edit --body "${CURRENT_BODY}
+
+---
+
+## Human Testing Gate
+
+> **This item must be manually checked before merging.** The automated PR review above does not satisfy this gate.
+
+- [ ] Human testing completed — all \`[HUMAN REQUIRED]\` criteria in the pre-merge audit have been manually verified by a human tester (see Human Testing Required section above)"
+```
+
+Confirm the PR body was updated:
+
+```bash
+gh pr view --json body -q '.body' | tail -15
+```
+
+State to the user:
+
+> "A 'Human Testing Gate' checklist item has been appended to the PR body. **A human must check this box before the PR can be merged.** This review's output alone does not satisfy this gate."
 
 ---
 
@@ -427,6 +519,47 @@ Run the test before committing to confirm it passes:
 npm test          # for unit tests
 npm run test:api  # for integration tests (if DB available)
 ```
+
+---
+
+## Phase 7 — Human Review Checklist
+
+Render this section **after** Phase 6. It lists things that automated checks cannot verify and that a human must sign off on before merging.
+
+Work through each category below and output a checklist of items that apply to this PR. Omit categories where nothing applies — do not output empty sections.
+
+### A. Security-sensitive new code
+Any new file or function that handles authentication, session tokens, credentials, or access control. Claude can verify it compiles and follows patterns, but a human must confirm the logic is correct and the trust boundary is right.
+
+Check for:
+- New files under `src/lib/auth/`
+- New server actions that set cookies or call `signOut`/`signIn`
+- Any new bypass, backdoor, or dev-shortcut logic
+
+For each: flag the file and the specific question (e.g. "Is the `NODE_ENV !== 'production'` guard sufficient for the test environment?")
+
+### B. Skipped or `.skip`-marked tests
+```bash
+grep -rn "\.skip\|test\.skip\|it\.skip\|describe\.skip\|skipTest\|@pytest.mark.skip" e2e/ src/test/ tests/ 2>/dev/null
+```
+
+For each skipped test: state the test name and the reason from the PR description or code comment. Flag if no reason is documented.
+
+### C. Manual test plan steps
+From `TEST_PLAN_STEPS` extracted in Phase 1: list any steps marked unchecked (`- [ ]`) in the PR description that are not covered by automated tests. These require a human to run manually before merge.
+
+### D. Schema or API contract changes
+Any change to `prisma/schema.prisma`, `src/lib/api/schemas.ts`, or a route handler's request/response shape. These affect existing callers and may require manual verification that downstream behaviour is correct.
+
+For each: state the field/endpoint changed and the question (e.g. "Does null staffProportion correctly route students-only surveys to the conflict-check step rather than a 409?")
+
+### E. Conflict resolutions from Phase 0
+If the rebase in Phase 0 produced any conflicts that were resolved automatically: list each resolved file and a one-line description of how it was resolved. A human should confirm the merge intent was correct.
+
+If no conflicts occurred: omit this section.
+
+### F. Environment-specific behaviour
+Any code whose behaviour differs across local/test/prod that was not already gated by an existing pattern. Flag if the gating condition may behave unexpectedly in a non-local environment (e.g. a `NODE_ENV` check in a test-environment deploy).
 
 ---
 
