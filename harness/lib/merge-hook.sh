@@ -21,12 +21,16 @@ merge_block() {
   fi
 
   if [ "$position" = "after-shebang" ]; then
-    local tmp
+    local tmp perms
     tmp=$(mktemp)
+    trap 'rm -f "$tmp"' EXIT
+    perms=$(stat -c '%a' "$hook_file" 2>/dev/null || stat -f '%A' "$hook_file")
     head -1 "$hook_file" > "$tmp"
     printf '\n%s\n' "$block_content" >> "$tmp"
     tail -n +2 "$hook_file" >> "$tmp"
     mv "$tmp" "$hook_file"
+    chmod "$perms" "$hook_file"
+    trap - EXIT
   else
     printf '\n%s\n' "$block_content" >> "$hook_file"
   fi

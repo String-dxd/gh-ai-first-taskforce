@@ -65,6 +65,7 @@ export NVM_DIR="$HOME/.nvm"
   merge_block "$hook" "nvm" "$block" "after-shebang"
   run sed -n '3p' "$hook"
   [ "$output" = "# harness:nvm:begin" ]
+  [ -x "$hook" ]
 }
 
 @test "merge_block after-shebang: second call is idempotent" {
