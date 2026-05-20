@@ -14,11 +14,11 @@ export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
 # harness:nvm:end'
 
-LANG=$(detect_language "$REPO_ROOT")
+REPO_LANG=$(detect_language "$REPO_ROOT")
 
-case "$LANG" in
+case "$REPO_LANG" in
   js|mixed)
-    echo "Detected $LANG repo — setting up Husky hooks..."
+    echo "Detected $REPO_LANG repo — setting up Husky hooks..."
     ensure_husky_installed "$REPO_ROOT"
     ensure_husky_init "$REPO_ROOT"
     ensure_hook_exists "$REPO_ROOT/.husky/pre-push"
