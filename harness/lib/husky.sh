@@ -15,7 +15,7 @@ ensure_husky_installed() {
       bun)  (cd "$repo_root" && bun add -D husky) ;;
       *)
         echo "ERROR: Unsupported package manager. Expected pnpm-lock.yaml or bun.lock/bun.lockb." >&2
-        exit 1
+        return 1
         ;;
     esac
   fi
@@ -31,7 +31,7 @@ ensure_husky_init() {
       bun)  (cd "$repo_root" && bunx husky init) ;;
       *)
         echo "ERROR: Unsupported package manager. Expected pnpm-lock.yaml or bun.lock/bun.lockb." >&2
-        exit 1
+        return 1
         ;;
     esac
     # husky init writes a sample "npm test" pre-commit — reset to a bare shebang
