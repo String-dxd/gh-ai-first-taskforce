@@ -17,6 +17,7 @@ export NVM_DIR="$HOME/.nvm"
 # harness:nvm:end'
 
 REPO_LANG=$(detect_language "$REPO_ROOT")
+REPO_PM=$(detect_package_manager "$REPO_ROOT")
 
 case "$REPO_LANG" in
   js|mixed)
@@ -37,7 +38,7 @@ case "$REPO_LANG" in
       install_golangci_hook "$REPO_ROOT"
     fi
     detect_overlapping_workflows "$REPO_ROOT"
-    install_workflow_file "$REPO_ROOT" "$SCRIPT_DIR" "harness-checks-${REPO_LANG}.yml"
+    install_workflow_file "$REPO_ROOT" "$REPO_LANG" "$REPO_PM"
     echo "Done. Husky hooks configured at $REPO_ROOT/.husky/"
     echo "NOTE: Add 'harness / checks' as a required status check in GitHub branch protection to enforce CI linting on PRs."
     ;;
