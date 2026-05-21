@@ -172,8 +172,10 @@ teardown() {
 @test "ensure_golangci_lint_available: fails with actionable error when neither found" {
   local empty_dir="$REPO_DIR/empty"
   mkdir -p "$empty_dir"
+  local saved_path="$PATH"
   export PATH="$empty_dir"
   run ensure_golangci_lint_available
+  export PATH="$saved_path"
   [ "$status" -eq 1 ]
   [[ "$output" == *"ERROR"* ]]
   [[ "$output" == *"golangci-lint"* ]]
