@@ -101,3 +101,62 @@ teardown() {
   ensure_gitleaks_config "$REPO_DIR"
   [ "$(wc -l < "$REPO_DIR/.gitleaks.toml" | tr -d ' ')" = "1" ]
 }
+
+# ── install_gitleaks_hook ─────────────────────────────────────────────────────
+
+@test "install_gitleaks_hook: merges harness:gitleaks:begin sentinel into pre-commit" {
+  mkdir -p "$REPO_DIR/.husky"
+  printf '#!/bin/sh\n' > "$REPO_DIR/.husky/pre-commit"
+  chmod +x "$REPO_DIR/.husky/pre-commit"
+  install_gitleaks_hook "$REPO_DIR"
+  grep -q "# harness:gitleaks:begin" "$REPO_DIR/.husky/pre-commit"
+}
+
+@test "install_gitleaks_hook: pre-commit contains gitleaks protect --staged" {
+  mkdir -p "$REPO_DIR/.husky"
+  printf '#!/bin/sh\n' > "$REPO_DIR/.husky/pre-commit"
+  chmod +x "$REPO_DIR/.husky/pre-commit"
+  install_gitleaks_hook "$REPO_DIR"
+  grep -q "gitleaks protect --staged" "$REPO_DIR/.husky/pre-commit"
+}
+
+@test "install_gitleaks_hook: pre-commit checks command -v gitleaks at runtime" {
+  mkdir -p "$REPO_DIR/.husky"
+  printf '#!/bin/sh\n' > "$REPO_DIR/.husky/pre-commit"
+  chmod +x "$REPO_DIR/.husky/pre-commit"
+  install_gitleaks_hook "$REPO_DIR"
+  grep -q "command -v gitleaks" "$REPO_DIR/.husky/pre-commit"
+}
+
+@test "install_gitleaks_hook: pre-commit error message includes install command" {
+  mkdir -p "$REPO_DIR/.husky"
+  printf '#!/bin/sh\n' > "$REPO_DIR/.husky/pre-commit"
+  chmod +x "$REPO_DIR/.husky/pre-commit"
+  install_gitleaks_hook "$REPO_DIR"
+  grep -q "brew install gitleaks" "$REPO_DIR/.husky/pre-commit"
+}
+
+@test "install_gitleaks_hook: pre-commit output includes next-steps guidance on failure" {
+  mkdir -p "$REPO_DIR/.husky"
+  printf '#!/bin/sh\n' > "$REPO_DIR/.husky/pre-commit"
+  chmod +x "$REPO_DIR/.husky/pre-commit"
+  install_gitleaks_hook "$REPO_DIR"
+  grep -q "allowlist" "$REPO_DIR/.husky/pre-commit"
+}
+
+@test "install_gitleaks_hook: pre-commit output mentions rotating credentials on failure" {
+  mkdir -p "$REPO_DIR/.husky"
+  printf '#!/bin/sh\n' > "$REPO_DIR/.husky/pre-commit"
+  chmod +x "$REPO_DIR/.husky/pre-commit"
+  install_gitleaks_hook "$REPO_DIR"
+  grep -q "[Rr]otat" "$REPO_DIR/.husky/pre-commit"
+}
+
+@test "install_gitleaks_hook: is idempotent on re-run" {
+  mkdir -p "$REPO_DIR/.husky"
+  printf '#!/bin/sh\n' > "$REPO_DIR/.husky/pre-commit"
+  chmod +x "$REPO_DIR/.husky/pre-commit"
+  install_gitleaks_hook "$REPO_DIR"
+  install_gitleaks_hook "$REPO_DIR"
+  [ "$(grep -c "harness:gitleaks:begin" "$REPO_DIR/.husky/pre-commit")" = "1" ]
+}

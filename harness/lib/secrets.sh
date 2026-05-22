@@ -57,3 +57,42 @@ EOF
 
   echo "Created default .gitleaks.toml"
 }
+
+# _gitleaks_hook_block
+# Outputs the harness:gitleaks pre-commit block content.
+_gitleaks_hook_block() {
+  cat <<'BLOCK'
+# harness:gitleaks:begin
+if ! command -v gitleaks >/dev/null 2>&1; then
+  echo "ERROR: gitleaks not found. Install it and re-run: gh ai-first-taskforce setup" >&2
+  echo "  macOS:  brew install gitleaks" >&2
+  echo "  other:  go install github.com/zricethezav/gitleaks/v8@latest" >&2
+  exit 1
+fi
+if [ -f .gitleaks.toml ]; then
+  gitleaks protect --staged --config .gitleaks.toml || {
+    echo "" >&2
+    echo "Secret detected. Next steps:" >&2
+    echo "  - False positive? Add an [[allowlist]] entry to .gitleaks.toml" >&2
+    echo "  - Real credential? Rotate it immediately — do not push" >&2
+    exit 1
+  }
+else
+  gitleaks protect --staged || {
+    echo "" >&2
+    echo "Secret detected. Next steps:" >&2
+    echo "  - False positive? Add an [[allowlist]] entry to .gitleaks.toml" >&2
+    echo "  - Real credential? Rotate it immediately — do not push" >&2
+    exit 1
+  }
+fi
+# harness:gitleaks:end
+BLOCK
+}
+
+# install_gitleaks_hook <repo_root>
+# Merges the gitleaks pre-commit block into .husky/pre-commit.
+install_gitleaks_hook() {
+  local repo_root="$1"
+  merge_block "$repo_root/.husky/pre-commit" "gitleaks" "$(_gitleaks_hook_block)" "append"
+}
