@@ -197,3 +197,58 @@ _bun_repo_with_hooks() {
   bash "$SETUP_SCRIPT" "$REPO_DIR"
   [ "$(grep -c "harness:golangci:begin" "$REPO_DIR/.husky/pre-commit")" = "1" ]
 }
+
+@test "creates .prettierrc for JS repo when absent" {
+  _pnpm_repo_with_hooks
+  run bash "$SETUP_SCRIPT" "$REPO_DIR"
+  [ "$status" -eq 0 ]
+  [ -f "$REPO_DIR/.prettierrc" ]
+}
+
+@test ".prettierrc excludes tailwind plugin when tailwindcss absent" {
+  _pnpm_repo_with_hooks
+  run bash "$SETUP_SCRIPT" "$REPO_DIR"
+  [ "$status" -eq 0 ]
+  run grep "prettier-plugin-tailwindcss" "$REPO_DIR/.prettierrc"
+  [ "$status" -ne 0 ]
+}
+
+@test ".prettierrc includes tailwind plugin when tailwindcss in package.json" {
+  _pnpm_repo_with_hooks
+  printf '{"devDependencies":{"husky":"^9.0.0","tailwindcss":"^3.0.0"}}\n' \
+    > "$REPO_DIR/package.json"
+  run bash "$SETUP_SCRIPT" "$REPO_DIR"
+  [ "$status" -eq 0 ]
+  grep -q "prettier-plugin-tailwindcss" "$REPO_DIR/.prettierrc"
+}
+
+@test ".lintstagedrc.json includes prettier --check for JS repo" {
+  _pnpm_repo_with_hooks
+  run bash "$SETUP_SCRIPT" "$REPO_DIR"
+  [ "$status" -eq 0 ]
+  grep -q "prettier --check" "$REPO_DIR/.lintstagedrc.json"
+}
+
+@test "does not merge gofmt block for JS-only repo" {
+  _pnpm_repo_with_hooks
+  run bash "$SETUP_SCRIPT" "$REPO_DIR"
+  [ "$status" -eq 0 ]
+  run grep "# harness:gofmt:begin" "$REPO_DIR/.husky/pre-commit"
+  [ "$status" -ne 0 ]
+}
+
+@test "merges gofmt block into pre-commit for mixed repo" {
+  _pnpm_repo_with_hooks
+  touch "$REPO_DIR/go.mod"
+  run bash "$SETUP_SCRIPT" "$REPO_DIR"
+  [ "$status" -eq 0 ]
+  grep -q "# harness:gofmt:begin" "$REPO_DIR/.husky/pre-commit"
+}
+
+@test "re-run does not duplicate gofmt block for mixed repo" {
+  _pnpm_repo_with_hooks
+  touch "$REPO_DIR/go.mod"
+  bash "$SETUP_SCRIPT" "$REPO_DIR"
+  bash "$SETUP_SCRIPT" "$REPO_DIR"
+  [ "$(grep -c "harness:gofmt:begin" "$REPO_DIR/.husky/pre-commit")" = "1" ]
+}
