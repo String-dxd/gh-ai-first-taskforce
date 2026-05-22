@@ -111,6 +111,36 @@ teardown() {
   [[ "$output" == *"golangci-lint-action@v6"* ]]
 }
 
+@test "generate_workflow_yaml js pnpm: contains prettier --check, not gofmt" {
+  run generate_workflow_yaml "js" "pnpm"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"prettier --check"* ]]
+  [[ "$output" != *"gofmt"* ]]
+}
+
+@test "generate_workflow_yaml js bun: contains prettier --check, not gofmt" {
+  run generate_workflow_yaml "js" "bun"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"prettier --check"* ]]
+  [[ "$output" != *"gofmt"* ]]
+}
+
+@test "generate_workflow_yaml mixed pnpm: contains prettier --check and gofmt and goimports" {
+  run generate_workflow_yaml "mixed" "pnpm"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"prettier --check"* ]]
+  [[ "$output" == *"gofmt -l"* ]]
+  [[ "$output" == *"goimports -l"* ]]
+}
+
+@test "generate_workflow_yaml mixed bun: contains prettier --check and gofmt and goimports" {
+  run generate_workflow_yaml "mixed" "bun"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"prettier --check"* ]]
+  [[ "$output" == *"gofmt -l"* ]]
+  [[ "$output" == *"goimports -l"* ]]
+}
+
 # ── install_workflow_file ────────────────────────────────────────────────
 
 @test "install_workflow_file: creates .github/workflows/harness-checks.yml on first run" {
