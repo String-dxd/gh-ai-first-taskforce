@@ -76,6 +76,9 @@ YAML
 
       - name: Lint (ESLint)
         run: npx eslint .
+
+      - name: Format (Prettier)
+        run: npx prettier --check .
 YAML
 
   if [ "$lang" = "mixed" ]; then
@@ -89,6 +92,27 @@ YAML
         uses: golangci/golangci-lint-action@v6
         with:
           version: latest
+
+      - name: Install goimports
+        run: go install golang.org/x/tools/cmd/goimports@latest
+
+      - name: Format (gofmt)
+        run: |
+          unformatted=$(gofmt -l .)
+          if [ -n "$unformatted" ]; then
+            echo "The following files are not gofmt-formatted:"
+            echo "$unformatted"
+            exit 1
+          fi
+
+      - name: Format (goimports)
+        run: |
+          unformatted=$(goimports -l .)
+          if [ -n "$unformatted" ]; then
+            echo "The following files need import formatting:"
+            echo "$unformatted"
+            exit 1
+          fi
 YAML
   fi
 }
