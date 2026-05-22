@@ -203,3 +203,29 @@ _git_repo_setup() {
   [ "$(git -C "$WORK_DIR" log -1 --format='%s')" = "chore: ai review for ${branch} @ ${sha}" ]
   rm -rf "$REMOTE_DIR" "$WORK_DIR"
 }
+
+# ── install_ai_review_runner ─────────────────────────────────────────────
+
+@test "install_ai_review_runner: copies runner to .harness/ai-review-runner.sh" {
+  run install_ai_review_runner "$REPO_DIR"
+  [ "$status" -eq 0 ]
+  [ -f "$REPO_DIR/.harness/ai-review-runner.sh" ]
+}
+
+@test "install_ai_review_runner: installed script is executable" {
+  install_ai_review_runner "$REPO_DIR"
+  [ -x "$REPO_DIR/.harness/ai-review-runner.sh" ]
+}
+
+@test "install_ai_review_runner: creates .harness/ directory if absent" {
+  [ ! -d "$REPO_DIR/.harness" ]
+  install_ai_review_runner "$REPO_DIR"
+  [ -d "$REPO_DIR/.harness" ]
+}
+
+@test "install_ai_review_runner: is idempotent" {
+  install_ai_review_runner "$REPO_DIR"
+  run install_ai_review_runner "$REPO_DIR"
+  [ "$status" -eq 0 ]
+  [ -f "$REPO_DIR/.harness/ai-review-runner.sh" ]
+}

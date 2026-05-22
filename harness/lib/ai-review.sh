@@ -22,3 +22,16 @@ parse_harness_config() {
     }
   ' "$config_file"
 }
+
+# install_ai_review_runner <repo_root>
+# Copies harness/scripts/ai-review-runner.sh to <repo_root>/.harness/ai-review-runner.sh.
+# Requires SCRIPT_DIR pointing to the harness root (set by setup.sh or tests).
+install_ai_review_runner() {
+  local repo_root="$1"
+  local dest="$repo_root/.harness/ai-review-runner.sh"
+  local src="${SCRIPT_DIR}/scripts/ai-review-runner.sh"
+
+  mkdir -p "$repo_root/.harness"
+  cp "$src" "$dest"
+  chmod +x "$dest"
+}
