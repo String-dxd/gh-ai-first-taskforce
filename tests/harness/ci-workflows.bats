@@ -266,3 +266,33 @@ teardown() {
   [ "$status" -eq 0 ]
   [ -z "$output" ]
 }
+
+# ── generate_workflow_yaml: type-check steps ────────────────────────────────
+
+@test "generate_workflow_yaml js pnpm: contains tsc --noEmit, not go vet" {
+  run generate_workflow_yaml "js" "pnpm"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"tsc --noEmit"* ]]
+  [[ "$output" != *"go vet"* ]]
+}
+
+@test "generate_workflow_yaml js bun: contains tsc --noEmit, not go vet" {
+  run generate_workflow_yaml "js" "bun"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"tsc --noEmit"* ]]
+  [[ "$output" != *"go vet"* ]]
+}
+
+@test "generate_workflow_yaml mixed pnpm: contains tsc --noEmit and go vet ./..." {
+  run generate_workflow_yaml "mixed" "pnpm"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"tsc --noEmit"* ]]
+  [[ "$output" == *"go vet ./..."* ]]
+}
+
+@test "generate_workflow_yaml mixed bun: contains tsc --noEmit and go vet ./..." {
+  run generate_workflow_yaml "mixed" "bun"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"tsc --noEmit"* ]]
+  [[ "$output" == *"go vet ./..."* ]]
+}
