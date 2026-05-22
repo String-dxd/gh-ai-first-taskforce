@@ -35,3 +35,22 @@ install_ai_review_runner() {
   cp "$src" "$dest"
   chmod +x "$dest"
 }
+
+# install_ai_review_hook <repo_root> <model> <api_key_var>
+# Installs the runner and wires the pre-push hook call block.
+# The model and api_key_var are substituted at install time;
+# $(git rev-parse --show-toplevel) is left for runtime evaluation.
+install_ai_review_hook() {
+  local repo_root="$1" model="$2" api_key_var="$3"
+  local pre_push="$repo_root/.husky/pre-push"
+  local block
+
+  install_ai_review_runner "$repo_root"
+
+  block='# harness:ai-review:begin
+HARNESS_AI_MODEL="'"$model"'" HARNESS_AI_KEY_VAR="'"$api_key_var"'" \
+  sh "$(git rev-parse --show-toplevel)/.harness/ai-review-runner.sh"
+# harness:ai-review:end'
+
+  merge_block "$pre_push" "ai-review" "$block" ""
+}

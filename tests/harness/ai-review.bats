@@ -229,3 +229,35 @@ _git_repo_setup() {
   [ "$status" -eq 0 ]
   [ -f "$REPO_DIR/.harness/ai-review-runner.sh" ]
 }
+
+# ── install_ai_review_hook ───────────────────────────────────────────────
+
+_husky_setup() {
+  source "$BATS_TEST_DIRNAME/../../harness/lib/merge-hook.sh"
+  mkdir -p "$REPO_DIR/.husky"
+  printf '#!/bin/sh\n' > "$REPO_DIR/.husky/pre-push"
+  chmod +x "$REPO_DIR/.husky/pre-push"
+}
+
+@test "install_ai_review_hook: copies runner to .harness/" {
+  _husky_setup
+  run install_ai_review_hook "$REPO_DIR" "claude-sonnet-4-6" "ANTHROPIC_API_KEY"
+  [ "$status" -eq 0 ]
+  [ -f "$REPO_DIR/.harness/ai-review-runner.sh" ]
+}
+
+@test "install_ai_review_hook: merges call block into .husky/pre-push" {
+  _husky_setup
+  install_ai_review_hook "$REPO_DIR" "claude-sonnet-4-6" "ANTHROPIC_API_KEY"
+  grep -q "# harness:ai-review:begin" "$REPO_DIR/.husky/pre-push"
+  grep -q "ai-review-runner.sh" "$REPO_DIR/.husky/pre-push"
+  grep -qF 'HARNESS_AI_MODEL="claude-sonnet-4-6"' "$REPO_DIR/.husky/pre-push"
+  grep -qF 'HARNESS_AI_KEY_VAR="ANTHROPIC_API_KEY"' "$REPO_DIR/.husky/pre-push"
+}
+
+@test "install_ai_review_hook: is idempotent — does not duplicate block" {
+  _husky_setup
+  install_ai_review_hook "$REPO_DIR" "claude-sonnet-4-6" "ANTHROPIC_API_KEY"
+  install_ai_review_hook "$REPO_DIR" "claude-sonnet-4-6" "ANTHROPIC_API_KEY"
+  [ "$(grep -c 'harness:ai-review:begin' "$REPO_DIR/.husky/pre-push")" = "1" ]
+}
