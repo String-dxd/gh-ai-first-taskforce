@@ -79,6 +79,9 @@ YAML
 
       - name: Format (Prettier)
         run: npx prettier --check .
+
+      - name: Type-check (tsc)
+        run: npx tsc --noEmit
 YAML
 
   if [ "$lang" = "mixed" ]; then
@@ -113,6 +116,9 @@ YAML
             echo "$unformatted"
             exit 1
           fi
+
+      - name: Type-check (go vet)
+        run: go vet ./...
 YAML
   fi
 }

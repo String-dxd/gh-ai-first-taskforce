@@ -146,6 +146,29 @@ All of the above, plus:
 
 Formatting failure exits non-zero and outputs which files need formatting — the commit is blocked. Run `gofmt -w <file>` or `goimports -w <file>` to fix.
 
+## Type-checking
+
+Setup installs type-checking tools and default configs if absent, then merges type-check hooks into `.husky/pre-commit`.
+
+### JS / TS repos
+
+- Installs `typescript` as a dev dependency (if not already present)
+- Writes a default `tsconfig.json` if none exists anywhere in the project (excludes `node_modules`):
+  - Detects source directory (`src/`, `web/`, `app/`; defaults to `src`)
+  - Includes `"types": ["vite/client"]` only when `vite` is detected in `package.json`
+  - Sets `"noEmit": true`, `"strict": true`, and the full recommended strictness flags
+- Merges a `harness:tsc` pre-commit block that runs `tsc --noEmit` against the **full project** on every commit (not staged-only — tsc requires whole-project context)
+- Monorepo support: if a root `tsconfig.json` with `"references"` exists, runs a single `tsc --noEmit`; otherwise iterates all `tsconfig.json` files found in the project
+
+### Mixed (Go + JS/TS) repos
+
+All of the above, plus:
+
+- Confirms `go` is available in PATH (required for `go vet`, which ships with the Go toolchain); fails with an actionable error if Go is not installed
+- Merges a `harness:govet` pre-commit block that runs `go vet` on packages containing staged `.go` files only
+
+Type-check failure exits non-zero, blocks the commit, and outputs which check failed. No auto-fix — hooks run in check mode only.
+
 ## Directory structure
 
 ```
@@ -159,6 +182,7 @@ harness/
     ci-workflows.sh             # generate_workflow_yaml, install_workflow_file, detect_overlapping_workflows
     lint.sh                     # ensure_eslint_installed, ensure_golangci_lint_available, install_lint_staged_hook, install_golangci_hook
     format.sh                   # ensure_prettier_installed, ensure_prettier_config, install_prettier_staged, ensure_goimports_available, install_gofmt_hook
+    typecheck.sh                # ensure_typescript_installed, ensure_tsconfig, ensure_go_vet_available, install_tsc_hook, install_go_vet_hook
 ```
 
 ## Running tests
