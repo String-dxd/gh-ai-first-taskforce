@@ -31,6 +31,7 @@ ensure_prettier_installed() {
     case "$pm" in
       pnpm) (cd "$repo_root" && pnpm add -D prettier-plugin-tailwindcss) ;;
       bun)  (cd "$repo_root" && bun add -D prettier-plugin-tailwindcss) ;;
+      *)    ;;
     esac
   fi
 }
@@ -45,7 +46,7 @@ ensure_prettier_config() {
              prettier.config.js prettier.config.cjs prettier.config.mjs; do
     [ -f "$repo_root/$cfg" ] && return 0
   done
-  grep -q '"prettier"' "$repo_root/package.json" 2>/dev/null && return 0
+  grep -qE '"prettier"\s*:\s*\{' "$repo_root/package.json" 2>/dev/null && return 0
 
   if _has_tailwind "$repo_root"; then
     printf '{\n  "printWidth": 150,\n  "tabWidth": 2,\n  "singleQuote": true,\n  "bracketSameLine": true,\n  "trailingComma": "es5",\n  "plugins": ["prettier-plugin-tailwindcss"]\n}\n' \
@@ -66,7 +67,8 @@ install_prettier_staged() {
   local config="$repo_root/.lintstagedrc.json"
 
   grep -q '"prettier' "$config" 2>/dev/null && return 0
-  grep -q '"prettier' "$repo_root/package.json" 2>/dev/null && return 0
+  grep -q '"lint-staged"' "$repo_root/package.json" 2>/dev/null && \
+    grep -q '"prettier' "$repo_root/package.json" 2>/dev/null && return 0
 
   printf '{\n  "*.{js,jsx,ts,tsx}": ["prettier --check", "eslint --max-warnings=0"]\n}\n' \
     > "$config"
@@ -81,7 +83,7 @@ ensure_goimports_available() {
     return 0
   fi
   if command -v go >/dev/null 2>&1; then
-    go install golang.org/x/tools/cmd/goimports@latest
+    go install golang.org/x/tools/cmd/goimports@latest || return 1
     echo "Installed goimports via go install. Ensure your GOPATH/bin is in PATH."
   else
     echo "ERROR: goimports not found and go is not available. Install Go: https://go.dev/dl/" >&2
