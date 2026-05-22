@@ -113,6 +113,9 @@ YAML
             echo "$unformatted"
             exit 1
           fi
+
+      - name: Type-check (go vet)
+        run: go vet ./...
 YAML
   fi
 }
