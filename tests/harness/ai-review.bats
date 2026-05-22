@@ -92,3 +92,114 @@ _runner_setup() {
   [ "$status" -eq 0 ]
   [[ "$output" == *"ANTHROPIC_API_KEY not set"* ]]
 }
+
+# ── ai-review-runner.sh review flow ─────────────────────────────────────
+
+_git_repo_setup() {
+  REMOTE_DIR=$(mktemp -d)
+  WORK_DIR=$(mktemp -d)
+
+  git -C "$REMOTE_DIR" init --bare -q
+
+  git clone -q "$REMOTE_DIR" "$WORK_DIR" 2>/dev/null
+  git -C "$WORK_DIR" config user.email "test@test.com"
+  git -C "$WORK_DIR" config user.name "Test"
+  git -C "$WORK_DIR" config commit.gpgsign false
+
+  echo "init" > "$WORK_DIR/README.md"
+  git -C "$WORK_DIR" add .
+  git -C "$WORK_DIR" commit -q -m "init"
+  git -C "$WORK_DIR" push -q -u origin main 2>/dev/null
+
+  # Unpushed local commit — this is what the runner will review
+  echo "local change" > "$WORK_DIR/app.js"
+  git -C "$WORK_DIR" add .
+  git -C "$WORK_DIR" commit -q -m "local work"
+}
+
+@test "runner: skips when there are no unpushed commits" {
+  _runner_setup
+  local remote work
+  remote=$(mktemp -d)
+  work=$(mktemp -d)
+  git -C "$remote" init --bare -q
+  git clone -q "$remote" "$work" 2>/dev/null
+  git -C "$work" config user.email "t@t.com"
+  git -C "$work" config user.name "T"
+  git -C "$work" config commit.gpgsign false
+  echo "init" > "$work/README.md"
+  git -C "$work" add .
+  git -C "$work" commit -q -m "init"
+  git -C "$work" push -q -u origin main 2>/dev/null
+
+  run env PATH="$MOCK_PATH:/usr/bin:/bin:/usr/local/bin" \
+    HARNESS_AI_KEY_VAR="ANTHROPIC_API_KEY" ANTHROPIC_API_KEY="test-key" \
+    sh -c "cd '$work' && sh '$RUNNER'"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"no diff to review"* ]]
+  rm -rf "$remote" "$work"
+}
+
+@test "runner: calls claude and prints review to terminal" {
+  _runner_setup
+  _git_repo_setup
+
+  run env PATH="$MOCK_PATH:/usr/bin:/bin:/usr/local/bin" \
+    HARNESS_AI_KEY_VAR="ANTHROPIC_API_KEY" ANTHROPIC_API_KEY="test-key" \
+    sh -c "cd '$WORK_DIR' && sh '$RUNNER'"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"running AI pre-push review"* ]]
+  [[ "$output" == *"canned test review"* ]]
+  rm -rf "$REMOTE_DIR" "$WORK_DIR"
+}
+
+@test "runner: saves review to review/YYYY-MM-DD-<branch>-<sha>.md" {
+  _runner_setup
+  _git_repo_setup
+  local sha branch today
+  sha=$(git -C "$WORK_DIR" rev-parse --short HEAD)
+  branch=$(git -C "$WORK_DIR" rev-parse --abbrev-ref HEAD | tr '/' '-')
+  today=$(date +%Y-%m-%d)
+
+  env PATH="$MOCK_PATH:/usr/bin:/bin:/usr/local/bin" \
+    HARNESS_AI_KEY_VAR="ANTHROPIC_API_KEY" ANTHROPIC_API_KEY="test-key" \
+    sh -c "cd '$WORK_DIR' && sh '$RUNNER'"
+
+  [ -f "$WORK_DIR/review/${today}-${branch}-${sha}.md" ]
+  grep -q "canned test review" "$WORK_DIR/review/${today}-${branch}-${sha}.md"
+  rm -rf "$REMOTE_DIR" "$WORK_DIR"
+}
+
+@test "runner: review file contains date, branch, and commit SHA header" {
+  _runner_setup
+  _git_repo_setup
+  local sha branch today
+  sha=$(git -C "$WORK_DIR" rev-parse --short HEAD)
+  branch=$(git -C "$WORK_DIR" rev-parse --abbrev-ref HEAD | tr '/' '-')
+  today=$(date +%Y-%m-%d)
+
+  env PATH="$MOCK_PATH:/usr/bin:/bin:/usr/local/bin" \
+    HARNESS_AI_KEY_VAR="ANTHROPIC_API_KEY" ANTHROPIC_API_KEY="test-key" \
+    sh -c "cd '$WORK_DIR' && sh '$RUNNER'"
+
+  local review_file="$WORK_DIR/review/${today}-${branch}-${sha}.md"
+  grep -qF "**Date:** $today" "$review_file"
+  grep -qF "**Branch:** $branch" "$review_file"
+  grep -qF "**Commit:** $sha" "$review_file"
+  rm -rf "$REMOTE_DIR" "$WORK_DIR"
+}
+
+@test "runner: commits review file with expected message" {
+  _runner_setup
+  _git_repo_setup
+  local sha branch
+  sha=$(git -C "$WORK_DIR" rev-parse --short HEAD)
+  branch=$(git -C "$WORK_DIR" rev-parse --abbrev-ref HEAD | tr '/' '-')
+
+  env PATH="$MOCK_PATH:/usr/bin:/bin:/usr/local/bin" \
+    HARNESS_AI_KEY_VAR="ANTHROPIC_API_KEY" ANTHROPIC_API_KEY="test-key" \
+    sh -c "cd '$WORK_DIR' && sh '$RUNNER'"
+
+  [ "$(git -C "$WORK_DIR" log -1 --format='%s')" = "chore: ai review for ${branch} @ ${sha}" ]
+  rm -rf "$REMOTE_DIR" "$WORK_DIR"
+}
