@@ -10,6 +10,7 @@ REPO_ROOT="${1:-$(git rev-parse --show-toplevel)}"
 . "$SCRIPT_DIR/lib/husky.sh"
 . "$SCRIPT_DIR/lib/ci-workflows.sh"
 . "$SCRIPT_DIR/lib/lint.sh"
+. "$SCRIPT_DIR/lib/format.sh"
 
 NVM_BLOCK='# harness:nvm:begin
 export NVM_DIR="$HOME/.nvm"
@@ -29,13 +30,17 @@ case "$REPO_LANG" in
     merge_block "$REPO_ROOT/.husky/pre-push" "nvm" "$NVM_BLOCK" "after-shebang"
     ensure_eslint_installed "$REPO_ROOT"
     ensure_eslint_config "$REPO_ROOT"
+    ensure_prettier_installed "$REPO_ROOT"
+    ensure_prettier_config "$REPO_ROOT"
     ensure_lint_staged_installed "$REPO_ROOT"
-    ensure_lint_staged_config "$REPO_ROOT"
     install_lint_staged_hook "$REPO_ROOT"
+    install_prettier_staged "$REPO_ROOT"
     if [ "$REPO_LANG" = "mixed" ]; then
       ensure_golangci_lint_available
       ensure_golangci_config "$REPO_ROOT"
       install_golangci_hook "$REPO_ROOT"
+      ensure_goimports_available
+      install_gofmt_hook "$REPO_ROOT"
     fi
     detect_overlapping_workflows "$REPO_ROOT"
     install_workflow_file "$REPO_ROOT" "$REPO_LANG" "$REPO_PM"

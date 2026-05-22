@@ -115,6 +115,37 @@ gh api repos/{owner}/{repo}/branches/main/protection \
   --field restrictions=null
 ```
 
+## Formatting
+
+Setup installs formatting tools and default configs if absent, then merges format hooks into `.husky/pre-commit`.
+
+### JS / TS repos
+
+- Installs `prettier` as a dev dependency (if not already present)
+- If `tailwindcss` is detected in `package.json`, also installs `prettier-plugin-tailwindcss`
+- Writes a default `.prettierrc` if no Prettier config file exists:
+  ```json
+  {
+    "printWidth": 150,
+    "tabWidth": 2,
+    "singleQuote": true,
+    "bracketSameLine": true,
+    "trailingComma": "es5"
+  }
+  ```
+  When `tailwindcss` is detected, `"plugins": ["prettier-plugin-tailwindcss"]` is added.
+- Writes `.lintstagedrc.json` targeting `*.{js,jsx,ts,tsx}` with both `prettier --check` and `eslint --max-warnings=0` (in check mode — no auto-fixing)
+- The existing `harness:lint` pre-commit block already runs `npx lint-staged`, which triggers both tools on staged files
+
+### Mixed (Go + JS/TS) repos
+
+All of the above, plus:
+
+- Checks for `goimports` in PATH; installs via `go install golang.org/x/tools/cmd/goimports@latest` if absent
+- Merges a `harness:gofmt` pre-commit block that runs `gofmt -l` then `goimports -l` on staged `.go` files — fails with actionable errors if any files are not formatted
+
+Formatting failure exits non-zero and outputs which files need formatting — the commit is blocked. Run `gofmt -w <file>` or `goimports -w <file>` to fix.
+
 ## Directory structure
 
 ```
@@ -127,6 +158,7 @@ harness/
     husky.sh                    # ensure_husky_installed, ensure_husky_init
     ci-workflows.sh             # generate_workflow_yaml, install_workflow_file, detect_overlapping_workflows
     lint.sh                     # ensure_eslint_installed, ensure_golangci_lint_available, install_lint_staged_hook, install_golangci_hook
+    format.sh                   # ensure_prettier_installed, ensure_prettier_config, install_prettier_staged, ensure_goimports_available, install_gofmt_hook
 ```
 
 ## Running tests
