@@ -58,3 +58,37 @@ YAML
   [ "$status" -eq 0 ]
   [ "$output" = "ANTHROPIC_API_KEY" ]
 }
+
+# ── ai-review-runner.sh skip guards ─────────────────────────────────────
+
+_runner_setup() {
+  RUNNER="$BATS_TEST_DIRNAME/../../harness/scripts/ai-review-runner.sh"
+  MOCK_PATH="$BATS_TEST_DIRNAME/../mocks"
+}
+
+@test "runner: skips with warning when claude CLI not in PATH" {
+  _runner_setup
+  run env PATH="/usr/bin:/bin" \
+    HARNESS_AI_KEY_VAR="ANTHROPIC_API_KEY" ANTHROPIC_API_KEY="test-key" \
+    sh "$RUNNER"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"claude CLI not found"* ]]
+}
+
+@test "runner: skips with warning when API key env var is unset" {
+  _runner_setup
+  run env PATH="$MOCK_PATH:/usr/bin:/bin:/usr/local/bin" \
+    HARNESS_AI_KEY_VAR="ANTHROPIC_API_KEY" \
+    sh "$RUNNER"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"ANTHROPIC_API_KEY not set"* ]]
+}
+
+@test "runner: skips with warning when API key env var is empty" {
+  _runner_setup
+  run env PATH="$MOCK_PATH:/usr/bin:/bin:/usr/local/bin" \
+    HARNESS_AI_KEY_VAR="ANTHROPIC_API_KEY" ANTHROPIC_API_KEY="" \
+    sh "$RUNNER"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"ANTHROPIC_API_KEY not set"* ]]
+}
