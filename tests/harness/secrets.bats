@@ -70,3 +70,34 @@ teardown() {
   run ensure_gitleaks_available
   [[ "$output" == *"go install"*"gitleaks"* ]]
 }
+
+# ── ensure_gitleaks_config ────────────────────────────────────────────────────
+
+@test "ensure_gitleaks_config: creates .gitleaks.toml when none exists" {
+  ensure_gitleaks_config "$REPO_DIR"
+  [ -f "$REPO_DIR/.gitleaks.toml" ]
+}
+
+@test "ensure_gitleaks_config: created config contains useDefault = true" {
+  ensure_gitleaks_config "$REPO_DIR"
+  grep -q "useDefault = true" "$REPO_DIR/.gitleaks.toml"
+}
+
+@test "ensure_gitleaks_config: created config contains allowlist comment guidance" {
+  ensure_gitleaks_config "$REPO_DIR"
+  grep -q "allowlist" "$REPO_DIR/.gitleaks.toml"
+}
+
+@test "ensure_gitleaks_config: skips when .gitleaks.toml already exists" {
+  printf 'title = "custom"\n' > "$REPO_DIR/.gitleaks.toml"
+  ensure_gitleaks_config "$REPO_DIR"
+  run grep "useDefault" "$REPO_DIR/.gitleaks.toml"
+  [ "$status" -ne 0 ]
+}
+
+@test "ensure_gitleaks_config: is idempotent — does not modify existing config" {
+  printf 'title = "custom"\n' > "$REPO_DIR/.gitleaks.toml"
+  ensure_gitleaks_config "$REPO_DIR"
+  ensure_gitleaks_config "$REPO_DIR"
+  [ "$(wc -l < "$REPO_DIR/.gitleaks.toml" | tr -d ' ')" = "1" ]
+}
