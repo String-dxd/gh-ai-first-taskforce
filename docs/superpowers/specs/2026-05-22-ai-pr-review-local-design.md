@@ -15,6 +15,7 @@ Developers only get AI review feedback after a PR is opened and CI runs — too 
 ## Goals
 
 - Surface AI code review in the terminal as part of the pre-push flow
+- Persist every review to a `review/` directory so the team has full transparency on what was reviewed and when
 - Zero friction to skip: non-blocking, no key = no error, no Claude = no error
 - Installed for all repos by default — no opt-in toggle required
 
@@ -83,9 +84,32 @@ _harness_ai_review() {
   [ -n "$diff" ] \
     || { echo "harness: ai-review skipped (no diff to review)"; return 0; }
 
+  local sha branch date review_file review_dir
+  sha=$(git rev-parse --short HEAD)
+  branch=$(git rev-parse --abbrev-ref HEAD | tr '/' '-')
+  date=$(date +%Y-%m-%d)
+  review_dir="$(git rev-parse --show-toplevel)/review"
+  review_file="$review_dir/${date}-${branch}-${sha}.md"
+
   echo "harness: running AI pre-push review..."
-  printf 'Review the following diff for code quality, potential bugs, and logic issues. Be concise.\n\n%s\n' \
-    "$diff" | claude --model "$HARNESS_AI_MODEL" -p /dev/stdin || true
+  local review
+  review=$(printf 'Review the following diff for code quality, potential bugs, and logic issues. Be concise.\n\n%s\n' \
+    "$diff" | claude --model "$HARNESS_AI_MODEL" -p /dev/stdin 2>&1) || true
+
+  echo "$review"
+
+  mkdir -p "$review_dir"
+  printf '# AI Pre-Push Review\n\n**Date:** %s\n**Branch:** %s\n**Commit:** %s\n\n---\n\n%s\n' \
+    "$date" "$branch" "$sha" "$review" > "$review_file"
+
+  git -C "$(git rev-parse --show-toplevel)" add "review/" \
+    && git -C "$(git rev-parse --show-toplevel)" commit \
+         --no-verify \
+         -m "chore: ai review for ${branch} @ ${sha}" \
+         -- "review/" \
+    || true
+
+  echo "harness: review saved to $review_file"
 }
 
 _harness_ai_review
@@ -155,10 +179,25 @@ git push
             ├─ API key set?         no → warn + return 0
             ├─ git diff upstream..HEAD (exclude patterns applied)
             ├─ diff empty?          yes → skip + return 0
-            └─ pipe diff to: claude --model <model> -p /dev/stdin
-                 └─ review printed to terminal
-                      └─ exit 0 always
+            ├─ pipe diff to: claude --model <model> -p /dev/stdin
+            │    └─ review printed to terminal
+            ├─ write review/YYYY-MM-DD-<branch>-<sha>.md
+            ├─ git add review/ && git commit --no-verify -m "chore: ai review for <branch> @ <sha>"
+            │    └─ commit failure → || true (push not blocked)
+            └─ exit 0 always
+                 └─ push proceeds (original commits + review commit)
 ```
+
+**Review file format:**
+
+```
+review/
+  2026-05-22-main-a1b2c3d.md
+  2026-05-22-feat-login-e4f5a6b.md
+  ...
+```
+
+Each file contains: date, branch, short SHA, and the full Claude review output. The `review/` directory is committed to the repo — browseable on GitHub for full team transparency.
 
 ---
 
@@ -170,7 +209,8 @@ git push
 | API key env var unset or empty | One-line warning, skip, exit 0 |
 | No upstream branch configured | Falls back to `origin/main` |
 | Diff is empty after filtering | One-line message, skip, exit 0 |
-| `claude` CLI exits non-zero | `|| true` ensures exit 0 (push not blocked) |
+| `claude` CLI exits non-zero | `\|\| true` ensures exit 0 (push not blocked) |
+| `git commit` for review file fails | `\|\| true` ensures exit 0; review printed to terminal but not persisted |
 | `.harness.yml` absent or `ai_review` block missing | `parse_harness_config` returns empty; setup uses defaults |
 
 ---
@@ -188,6 +228,9 @@ Scenarios:
 - Setup always installs the hook regardless of `.harness.yml` content
 - Runner skips gracefully when `claude` mock is absent (using `tests/mocks/`)
 - Runner skips gracefully when API key env var is unset
+- Runner writes review file to `review/YYYY-MM-DD-<branch>-<sha>.md` with correct content
+- Runner commits the review file with `--no-verify` and the expected commit message
+- Review commit failure (e.g. nothing to commit) does not block the push
 
 A mock `claude` binary is added to `tests/mocks/` that echoes a canned review, allowing end-to-end runner execution to be tested without a real API call.
 
