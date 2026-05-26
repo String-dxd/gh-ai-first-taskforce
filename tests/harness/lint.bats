@@ -213,23 +213,39 @@ teardown() {
   mkdir -p "$REPO_DIR/.husky"
   printf '#!/bin/sh\n' > "$REPO_DIR/.husky/pre-commit"
   chmod +x "$REPO_DIR/.husky/pre-commit"
-  install_lint_staged_hook "$REPO_DIR"
+  install_lint_staged_hook "$REPO_DIR" ""
   grep -q "# harness:lint:begin" "$REPO_DIR/.husky/pre-commit"
 }
 
-@test "install_lint_staged_hook: pre-commit contains npx lint-staged" {
+@test "install_lint_staged_hook: uses npx lint-staged when no package manager specified" {
   mkdir -p "$REPO_DIR/.husky"
   printf '#!/bin/sh\n' > "$REPO_DIR/.husky/pre-commit"
   chmod +x "$REPO_DIR/.husky/pre-commit"
-  install_lint_staged_hook "$REPO_DIR"
+  install_lint_staged_hook "$REPO_DIR" ""
   grep -q "npx lint-staged" "$REPO_DIR/.husky/pre-commit"
+}
+
+@test "install_lint_staged_hook: uses pnpm lint-staged when pnpm detected" {
+  mkdir -p "$REPO_DIR/.husky"
+  printf '#!/bin/sh\n' > "$REPO_DIR/.husky/pre-commit"
+  chmod +x "$REPO_DIR/.husky/pre-commit"
+  install_lint_staged_hook "$REPO_DIR" "pnpm"
+  grep -q "pnpm lint-staged" "$REPO_DIR/.husky/pre-commit"
+}
+
+@test "install_lint_staged_hook: uses bun run lint-staged when bun detected" {
+  mkdir -p "$REPO_DIR/.husky"
+  printf '#!/bin/sh\n' > "$REPO_DIR/.husky/pre-commit"
+  chmod +x "$REPO_DIR/.husky/pre-commit"
+  install_lint_staged_hook "$REPO_DIR" "bun"
+  grep -q "bun run lint-staged" "$REPO_DIR/.husky/pre-commit"
 }
 
 @test "install_lint_staged_hook: pre-commit checks for node at runtime" {
   mkdir -p "$REPO_DIR/.husky"
   printf '#!/bin/sh\n' > "$REPO_DIR/.husky/pre-commit"
   chmod +x "$REPO_DIR/.husky/pre-commit"
-  install_lint_staged_hook "$REPO_DIR"
+  install_lint_staged_hook "$REPO_DIR" ""
   grep -q "command -v node" "$REPO_DIR/.husky/pre-commit"
 }
 
@@ -237,8 +253,8 @@ teardown() {
   mkdir -p "$REPO_DIR/.husky"
   printf '#!/bin/sh\n' > "$REPO_DIR/.husky/pre-commit"
   chmod +x "$REPO_DIR/.husky/pre-commit"
-  install_lint_staged_hook "$REPO_DIR"
-  install_lint_staged_hook "$REPO_DIR"
+  install_lint_staged_hook "$REPO_DIR" "pnpm"
+  install_lint_staged_hook "$REPO_DIR" "pnpm"
   [ "$(grep -c "harness:lint:begin" "$REPO_DIR/.husky/pre-commit")" = "1" ]
 }
 

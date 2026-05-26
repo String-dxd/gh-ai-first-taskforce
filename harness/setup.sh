@@ -41,7 +41,7 @@ case "$REPO_LANG" in
     ensure_prettier_installed "$REPO_ROOT"
     ensure_prettier_config "$REPO_ROOT"
     ensure_lint_staged_installed "$REPO_ROOT"
-    install_lint_staged_hook "$REPO_ROOT"
+    install_lint_staged_hook "$REPO_ROOT" "$REPO_PM"
     install_prettier_staged "$REPO_ROOT"
     if [ "$REPO_LANG" = "mixed" ]; then
       ensure_golangci_lint_available
@@ -52,7 +52,7 @@ case "$REPO_LANG" in
     fi
     ensure_typescript_installed "$REPO_ROOT"
     ensure_tsconfig "$REPO_ROOT"
-    install_tsc_hook "$REPO_ROOT"
+    install_tsc_hook "$REPO_ROOT" "$REPO_PM"
     if [ "$REPO_LANG" = "mixed" ]; then
       ensure_go_vet_available
       install_go_vet_hook "$REPO_ROOT"

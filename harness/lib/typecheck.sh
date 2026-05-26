@@ -61,37 +61,43 @@ ensure_go_vet_available() {
   return 1
 }
 
-# install_tsc_hook <repo_root>
+# install_tsc_hook <repo_root> <pkg_mgr>
 # Merges the tsc pre-commit block into .husky/pre-commit.
 install_tsc_hook() {
-  local repo_root="$1"
+  local repo_root="$1" pkg_mgr="$2"
+  local tsc_runner
+  case "$pkg_mgr" in
+    pnpm) tsc_runner="pnpm exec tsc" ;;
+    bun)  tsc_runner="bun run tsc" ;;
+    *)    tsc_runner="npx tsc" ;;
+  esac
   local tsc_block
-  tsc_block='# harness:tsc:begin
-if ! command -v npx >/dev/null 2>&1; then
-  echo "ERROR: npx not found. Ensure nvm is configured and re-run: gh ai-first-taskforce setup" >&2
+  tsc_block="# harness:tsc:begin
+if ! command -v node >/dev/null 2>&1; then
+  echo \"ERROR: node not found. Ensure nvm is configured and re-run: gh ai-first-taskforce setup\" >&2
   exit 1
 fi
-_TSC_LIST=$(mktemp)
-find . -name tsconfig.json -not -path "*/node_modules/*" | sort > "$_TSC_LIST"
-if [ ! -s "$_TSC_LIST" ]; then
-  rm -f "$_TSC_LIST"
-  echo "ERROR: No tsconfig.json found. Run: gh ai-first-taskforce setup" >&2
+_TSC_LIST=\$(mktemp)
+find . -name tsconfig.json -not -path \"*/node_modules/*\" | sort > \"\$_TSC_LIST\"
+if [ ! -s \"\$_TSC_LIST\" ]; then
+  rm -f \"\$_TSC_LIST\"
+  echo \"ERROR: No tsconfig.json found. Run: gh ai-first-taskforce setup\" >&2
   exit 1
 fi
 if [ -f ./tsconfig.json ] && grep -q references ./tsconfig.json; then
-  rm -f "$_TSC_LIST"
-  npx tsc --noEmit || exit 1
+  rm -f \"\$_TSC_LIST\"
+  $tsc_runner --noEmit || exit 1
 else
   _TSC_FAIL=0
   while IFS= read -r _cfg; do
-    npx tsc --noEmit -p "$_cfg" || _TSC_FAIL=1
-  done < "$_TSC_LIST"
-  rm -f "$_TSC_LIST"
-  [ "$_TSC_FAIL" = "0" ] || exit 1
+    $tsc_runner --noEmit -p \"\$_cfg\" || _TSC_FAIL=1
+  done < \"\$_TSC_LIST\"
+  rm -f \"\$_TSC_LIST\"
+  [ \"\$_TSC_FAIL\" = \"0\" ] || exit 1
   unset _TSC_FAIL _cfg
 fi
 unset _TSC_LIST
-# harness:tsc:end'
+# harness:tsc:end"
   merge_block "$repo_root/.husky/pre-commit" "tsc" "$tsc_block" "append"
 }
 
