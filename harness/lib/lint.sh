@@ -127,14 +127,20 @@ EOF
 }
 
 install_lint_staged_hook() {
-  local repo_root="$1"
-  local lint_block='# harness:lint:begin
+  local repo_root="$1" pkg_mgr="$2"
+  local runner
+  case "$pkg_mgr" in
+    pnpm) runner="pnpm lint-staged" ;;
+    bun)  runner="bun run lint-staged" ;;
+    *)    runner="npx lint-staged" ;;
+  esac
+  local lint_block="# harness:lint:begin
 if ! command -v node >/dev/null 2>&1; then
-  echo "ERROR: node not found. Ensure nvm is configured and re-run: gh ai-first-taskforce setup" >&2
+  echo \"ERROR: node not found. Ensure nvm is configured and re-run: gh ai-first-taskforce setup\" >&2
   exit 1
 fi
-npx lint-staged
-# harness:lint:end'
+$runner
+# harness:lint:end"
   merge_block "$repo_root/.husky/pre-commit" "lint" "$lint_block" "append"
 }
 

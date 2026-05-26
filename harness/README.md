@@ -85,7 +85,7 @@ Setup installs linting tools and default configs if absent, then merges lint hoo
 - Installs `eslint` and `lint-staged` as dev dependencies (if not already present)
 - Writes a default `.eslintrc.json` (extends `eslint:recommended`) if no ESLint config file exists
 - Writes a default `.lintstagedrc.json` targeting `*.{js,jsx,ts,tsx}` files if no lint-staged config exists
-- Merges a `harness:lint` pre-commit block that runs `npx lint-staged` on staged files
+- Merges a `harness:lint` pre-commit block that runs lint-staged on staged files using the detected package manager (`pnpm lint-staged`, `bun run lint-staged`, or `npx lint-staged`)
 
 ### Mixed (Go + JS/TS) repos
 
@@ -136,7 +136,7 @@ Setup installs formatting tools and default configs if absent, then merges forma
   ```
   When `tailwindcss` is detected, `"plugins": ["prettier-plugin-tailwindcss"]` is added.
 - Writes `.lintstagedrc.json` targeting `*.{js,jsx,ts,tsx}` with both `prettier --check` and `eslint --max-warnings=0` (in check mode — no auto-fixing)
-- The existing `harness:lint` pre-commit block already runs `npx lint-staged`, which triggers both tools on staged files
+- The existing `harness:lint` pre-commit block already runs lint-staged via the detected package manager, which triggers both tools on staged files
 
 ### Mixed (Go + JS/TS) repos
 

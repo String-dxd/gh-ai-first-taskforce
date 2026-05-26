@@ -72,16 +72,23 @@ YAML
       ;;
   esac
 
-  cat <<'YAML'
+  local eslint_cmd prettier_cmd tsc_cmd
+  case "$pm" in
+    pnpm) eslint_cmd="pnpm exec eslint ."  ; prettier_cmd="pnpm exec prettier --check ." ; tsc_cmd="pnpm exec tsc --noEmit" ;;
+    bun)  eslint_cmd="bun run eslint ."    ; prettier_cmd="bun run prettier --check ."   ; tsc_cmd="bun run tsc --noEmit"  ;;
+    *)    eslint_cmd="npx eslint ."        ; prettier_cmd="npx prettier --check ."       ; tsc_cmd="npx tsc --noEmit"      ;;
+  esac
+
+  cat <<YAML
 
       - name: Lint (ESLint)
-        run: npx eslint .
+        run: $eslint_cmd
 
       - name: Format (Prettier)
-        run: npx prettier --check .
+        run: $prettier_cmd
 
       - name: Type-check (tsc)
-        run: npx tsc --noEmit
+        run: $tsc_cmd
 YAML
 
   if [ "$lang" = "mixed" ]; then

@@ -162,26 +162,44 @@ teardown() {
   printf '#!/bin/sh\n' > "$REPO_DIR/.husky/pre-commit"
   chmod +x "$REPO_DIR/.husky/pre-commit"
   printf '{"devDependencies":{}}\n' > "$REPO_DIR/package.json"
-  install_tsc_hook "$REPO_DIR"
+  install_tsc_hook "$REPO_DIR" ""
   grep -q "# harness:tsc:begin" "$REPO_DIR/.husky/pre-commit"
 }
 
-@test "install_tsc_hook: pre-commit contains npx tsc --noEmit" {
+@test "install_tsc_hook: uses npx tsc when no package manager specified" {
   mkdir -p "$REPO_DIR/.husky"
   printf '#!/bin/sh\n' > "$REPO_DIR/.husky/pre-commit"
   chmod +x "$REPO_DIR/.husky/pre-commit"
   printf '{"devDependencies":{}}\n' > "$REPO_DIR/package.json"
-  install_tsc_hook "$REPO_DIR"
+  install_tsc_hook "$REPO_DIR" ""
   grep -q "npx tsc --noEmit" "$REPO_DIR/.husky/pre-commit"
 }
 
-@test "install_tsc_hook: pre-commit checks command -v npx at runtime" {
+@test "install_tsc_hook: uses pnpm exec tsc when pnpm detected" {
   mkdir -p "$REPO_DIR/.husky"
   printf '#!/bin/sh\n' > "$REPO_DIR/.husky/pre-commit"
   chmod +x "$REPO_DIR/.husky/pre-commit"
   printf '{"devDependencies":{}}\n' > "$REPO_DIR/package.json"
-  install_tsc_hook "$REPO_DIR"
-  grep -q "command -v npx" "$REPO_DIR/.husky/pre-commit"
+  install_tsc_hook "$REPO_DIR" "pnpm"
+  grep -q "pnpm exec tsc --noEmit" "$REPO_DIR/.husky/pre-commit"
+}
+
+@test "install_tsc_hook: uses bun run tsc when bun detected" {
+  mkdir -p "$REPO_DIR/.husky"
+  printf '#!/bin/sh\n' > "$REPO_DIR/.husky/pre-commit"
+  chmod +x "$REPO_DIR/.husky/pre-commit"
+  printf '{"devDependencies":{}}\n' > "$REPO_DIR/package.json"
+  install_tsc_hook "$REPO_DIR" "bun"
+  grep -q "bun run tsc --noEmit" "$REPO_DIR/.husky/pre-commit"
+}
+
+@test "install_tsc_hook: pre-commit checks command -v node at runtime" {
+  mkdir -p "$REPO_DIR/.husky"
+  printf '#!/bin/sh\n' > "$REPO_DIR/.husky/pre-commit"
+  chmod +x "$REPO_DIR/.husky/pre-commit"
+  printf '{"devDependencies":{}}\n' > "$REPO_DIR/package.json"
+  install_tsc_hook "$REPO_DIR" ""
+  grep -q "command -v node" "$REPO_DIR/.husky/pre-commit"
 }
 
 @test "install_tsc_hook: pre-commit errors when no tsconfig.json found" {
@@ -189,7 +207,7 @@ teardown() {
   printf '#!/bin/sh\n' > "$REPO_DIR/.husky/pre-commit"
   chmod +x "$REPO_DIR/.husky/pre-commit"
   printf '{"devDependencies":{}}\n' > "$REPO_DIR/package.json"
-  install_tsc_hook "$REPO_DIR"
+  install_tsc_hook "$REPO_DIR" ""
   grep -q "tsconfig.json" "$REPO_DIR/.husky/pre-commit"
 }
 
@@ -198,8 +216,8 @@ teardown() {
   printf '#!/bin/sh\n' > "$REPO_DIR/.husky/pre-commit"
   chmod +x "$REPO_DIR/.husky/pre-commit"
   printf '{"devDependencies":{}}\n' > "$REPO_DIR/package.json"
-  install_tsc_hook "$REPO_DIR"
-  install_tsc_hook "$REPO_DIR"
+  install_tsc_hook "$REPO_DIR" "pnpm"
+  install_tsc_hook "$REPO_DIR" "pnpm"
   [ "$(grep -c "harness:tsc:begin" "$REPO_DIR/.husky/pre-commit")" = "1" ]
 }
 

@@ -89,12 +89,30 @@ teardown() {
   [[ "$output" != *"golangci-lint-action"* ]]
 }
 
+@test "generate_workflow_yaml js pnpm: uses pnpm exec for eslint, prettier, tsc" {
+  run generate_workflow_yaml "js" "pnpm"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"pnpm exec eslint ."* ]]
+  [[ "$output" == *"pnpm exec prettier --check ."* ]]
+  [[ "$output" == *"pnpm exec tsc --noEmit"* ]]
+  [[ "$output" != *"npx eslint"* ]]
+}
+
 @test "generate_workflow_yaml js bun: contains bun install, not pnpm or go steps" {
   run generate_workflow_yaml "js" "bun"
   [ "$status" -eq 0 ]
   [[ "$output" == *"bun install --frozen-lockfile"* ]]
   [[ "$output" != *"pnpm install"* ]]
   [[ "$output" != *"golangci-lint-action"* ]]
+}
+
+@test "generate_workflow_yaml js bun: uses bun run for eslint, prettier, tsc" {
+  run generate_workflow_yaml "js" "bun"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"bun run eslint ."* ]]
+  [[ "$output" == *"bun run prettier --check ."* ]]
+  [[ "$output" == *"bun run tsc --noEmit"* ]]
+  [[ "$output" != *"npx eslint"* ]]
 }
 
 @test "generate_workflow_yaml mixed pnpm: contains pnpm install and golangci steps" {

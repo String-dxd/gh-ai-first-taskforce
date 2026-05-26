@@ -168,12 +168,20 @@ _bun_repo_with_hooks() {
   [ -f "$REPO_DIR/.golangci.yml" ]
 }
 
-@test "installs js workflow template for JS repo" {
+@test "installs js workflow template for JS repo (pnpm)" {
   _pnpm_repo_with_hooks
   run bash "$SETUP_SCRIPT" "$REPO_DIR"
   [ "$status" -eq 0 ]
   ! grep -q "golangci-lint-action" "$REPO_DIR/.github/workflows/harness-checks.yml"
-  grep -q "npx eslint" "$REPO_DIR/.github/workflows/harness-checks.yml"
+  grep -q "pnpm exec eslint" "$REPO_DIR/.github/workflows/harness-checks.yml"
+}
+
+@test "installs js workflow template for JS repo (bun)" {
+  _bun_repo_with_hooks
+  run bash "$SETUP_SCRIPT" "$REPO_DIR"
+  [ "$status" -eq 0 ]
+  ! grep -q "golangci-lint-action" "$REPO_DIR/.github/workflows/harness-checks.yml"
+  grep -q "bun run eslint" "$REPO_DIR/.github/workflows/harness-checks.yml"
 }
 
 @test "installs mixed workflow template for mixed repo" {
