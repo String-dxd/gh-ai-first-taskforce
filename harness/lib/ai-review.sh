@@ -47,15 +47,15 @@ install_ai_review_hook() {
 
   install_ai_review_runner "$repo_root"
 
-  block='# harness:ai-review:begin
-if [ -z "$_HARNESS_ROOT" ]; then
-  echo "harness: ai-review skipped (unable to resolve repository root)" >&2
-elif [ ! -f "$_HARNESS_ROOT/.harness/ai-review-runner.sh" ]; then
-  echo "harness: ai-review skipped (runner not found — run: gh ai-first-taskforce setup)" >&2
+  block="# harness:ai-review:begin
+if [ -z \"\$_HARNESS_ROOT\" ]; then
+  echo \"harness: ai-review skipped (unable to resolve repository root)\" >&2
+elif [ ! -f \"\$_HARNESS_ROOT/.harness/ai-review-runner.sh\" ]; then
+  echo \"harness: ai-review skipped (runner not found — run: gh ai-first-taskforce setup)\" >&2
 else
-  HARNESS_AI_MODEL="'"$model"'" sh "$_HARNESS_ROOT/.harness/ai-review-runner.sh"
+  _HARNESS_ROOT=\"\$_HARNESS_ROOT\" HARNESS_AI_MODEL=\"${model}\" sh \"\$_HARNESS_ROOT/.harness/ai-review-runner.sh\"
 fi
-# harness:ai-review:end'
+# harness:ai-review:end"
 
   merge_block "$pre_push" "ai-review" "$block" ""
 }
