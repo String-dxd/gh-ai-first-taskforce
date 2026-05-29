@@ -4,6 +4,28 @@ Knowledge repository for the AI-First Taskforce. This repo collects best practic
 
 ---
 
+## Installation
+
+Install as a `gh` CLI extension:
+
+```sh
+gh extension install transformteamsg/ai-first-taskforce
+```
+
+Then run setup to install the taskforce's Claude Code skills into `~/.claude/skills/`:
+
+```sh
+gh ai-first-taskforce setup
+```
+
+Skills are available to Claude Code automatically once installed. To get the latest skills after an extension update:
+
+```sh
+gh extension upgrade ai-first-taskforce && gh ai-first-taskforce setup
+```
+
+---
+
 ## Goals
 
 The AI-First Taskforce aims to increase developer productivity through practical application of generative AI in software engineering workflows.

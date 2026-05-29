@@ -7,13 +7,32 @@ shift 2>/dev/null || true
 
 case "$COMMAND" in
   setup)
-    sh "$EXTENSION_DIR/harness/setup.sh" "$@"
+    SKILLS_SRC="$EXTENSION_DIR/skills"
+    SKILLS_DEST="$HOME/.claude/skills"
+
+    if [ ! -d "$SKILLS_SRC" ]; then
+      echo "ERROR: No skills directory found at $SKILLS_SRC" >&2
+      exit 1
+    fi
+
+    mkdir -p "$SKILLS_DEST"
+
+    installed=0
+    for skill_dir in "$SKILLS_SRC"/*/; do
+      [ -d "$skill_dir" ] || continue
+      skill_name="$(basename "$skill_dir")"
+      cp -r "$skill_dir" "$SKILLS_DEST/$skill_name"
+      echo "  installed: $skill_name"
+      installed=$((installed + 1))
+    done
+
+    echo "Done. $installed skill(s) installed to $SKILLS_DEST"
     ;;
   help|--help|-h)
     echo "Usage: gh ai-first-taskforce <command>"
     echo ""
     echo "Commands:"
-    echo "  setup    Scaffold Husky hooks into the current repo"
+    echo "  setup    Install AI-First Taskforce skills into Claude Code (~/.claude/skills/)"
     ;;
   *)
     echo "Unknown command: $COMMAND" >&2
