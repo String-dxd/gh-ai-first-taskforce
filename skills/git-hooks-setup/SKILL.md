@@ -107,6 +107,8 @@ First, re-confirm the package manager from the lockfile — you will need it to 
 | Check | Pass condition |
 |-------|---------------|
 | Pre-push hook exists | `.husky/pre-push` exists and is executable |
+| Hook blocks push to main/master | `grep -qE 'main\|master' .husky/pre-push` and reads remote ref from stdin |
+| Hook enforces branch naming | `grep -q 'BRANCH_PATTERN' .husky/pre-push` and `grep -q 'TRUNK_PATTERN' .husky/pre-push` |
 | Hook calls test runner | `grep -qE 'test|jest|vitest|mocha' .husky/pre-push` |
 | Test script present | `test` script defined in `package.json` |
 
@@ -146,7 +148,62 @@ Configure `.husky/pre-commit` to run in this order:
 
 Configure `.husky/pre-push` to run (with the same version manager bootstrap as pre-commit):
 
-1. **Test suite** — full test suite; block push if any test fails.
+1. **Block push to main/master** — reads the remote ref from stdin (which git passes to pre-push) and aborts if the destination branch is `main` or `master`. This is a last-resort guard for repos without remote branch protection:
+
+   ```sh
+   # git passes one line per ref being pushed: <local-ref> <local-sha> <remote-ref> <remote-sha>
+   # exit 1 inside the loop terminates the entire script immediately — not just the loop iteration
+   while read local_ref local_sha remote_ref remote_sha; do
+     if echo "$remote_ref" | grep -qE '^refs/heads/(main|master)$'; then
+       echo "Direct push to ${remote_ref} is not allowed. Open a pull request instead."
+       exit 1
+     fi
+   done
+   ```
+
+   > This does not fire when there is no stdin (e.g. `git push --dry-run` with no piped input). Always pair with remote branch protection rules where the hosting platform supports it.
+
+   > `develop` is intentionally not blocked here — teams that treat `develop` as a protected integration branch should add it to the pattern: `^refs/heads/(main|master|develop)$`. Note that trunk branches exempt from naming rules are not automatically the same set as branches blocked from direct push — align the two sets deliberately.
+
+2. **Branch naming check** — enforces the [Conventional Branch](https://conventionalbranch.org) naming convention before the push reaches the remote:
+
+   ```sh
+   BRANCH=$(git symbolic-ref HEAD 2>/dev/null | sed 's|refs/heads/||')
+   # Conventional Branch: type/description — lowercase, hyphens/dots as separators only
+   # [a-z0-9]+([.-][a-z0-9]+)* enforces: no leading/trailing/consecutive separators
+   # Trunk branches (main, master, develop) are exempt
+   BRANCH_PATTERN='^(feature|feat|bugfix|fix|hotfix|release|chore)/[a-z0-9]+([.-][a-z0-9]+)*$'
+   TRUNK_PATTERN='^(main|master|develop)$'
+
+   if [ -n "$BRANCH" ] && ! echo "$BRANCH" | grep -qE "$TRUNK_PATTERN" && ! echo "$BRANCH" | grep -qE "$BRANCH_PATTERN"; then
+     echo "Branch name '$BRANCH' does not follow Conventional Branch naming."
+     echo "Format: <type>/<description>  e.g. feat/add-login, fix/null-deref, hotfix/payment-crash"
+     echo "Valid types: feature, feat, bugfix, fix, hotfix, release, chore"
+     echo "Rules: lowercase, hyphens to separate words, no consecutive hyphens or dots"
+     echo "Rename with: git branch -m $BRANCH <new-name>"
+     exit 1
+   fi
+   ```
+
+   Valid types per [conventionalbranch.org](https://conventionalbranch.org):
+
+   | Type | Purpose | Example |
+   |------|---------|---------|
+   | `feature/` or `feat/` | New features | `feat/add-login-page` |
+   | `bugfix/` or `fix/` | Bug fixes | `fix/null-deref` |
+   | `hotfix/` | Urgent production fixes | `hotfix/payment-crash` |
+   | `release/` | Release preparation (dots allowed for versions) | `release/v1.2.0` |
+   | `chore/` | Non-code tasks | `chore/update-deps` |
+
+   Trunk branches (`main`, `master`, `develop`) are exempt from the pattern check.
+
+   If the team uses ticket numbers, they go in the description: `feat/issue-123-add-login`.
+
+   Ask the team which convention to enforce if not already documented. If no convention exists yet, default to Conventional Branch and note it in the project's CLAUDE.md or contributing guide.
+
+   After writing the hook file, make it executable: `chmod +x .husky/pre-push`
+
+3. **Test suite** — full test suite; block push if any test fails.
 
    Detect the test runner from `package.json`:
    - `jest` in devDependencies → `npx jest` (or PM equivalent)
@@ -228,3 +285,6 @@ For each file: if absent, create it with the baseline. If present, check the bas
 | Tests skipped when nothing staged | Pre-push runs against the full branch, not staged files — always run the full suite |
 | Hook file not executable | `chmod +x .husky/<hook-name>` — git silently skips non-executable hooks |
 | Pre-push hook hangs with vitest | `vitest` defaults to watch mode — use `vitest run` or `npx vitest run` explicitly; do not rely on a `test` script that may invoke watch mode |
+| Main branch check never fires | The stdin-based check only works when git pipes ref info — ensure the `while read` loop is present and not replaced with a simple `git branch --show-current` approach, which reads local state not the push target |
+| Branch pattern rejects detached HEAD | `git symbolic-ref` exits non-zero in detached HEAD state — always guard with `[ -n "$BRANCH" ]` before pattern matching |
+| Consecutive hyphens/dots pass naive pattern | `[a-z0-9][a-z0-9.-]*[a-z0-9]` allows `feat/ab--cd` — use `[a-z0-9]+([.-][a-z0-9]+)*` instead, which requires every separator to be followed by an alphanumeric |
