@@ -1,0 +1,58 @@
+{
+  "skill_name": "git-hooks-setup",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I have a new TypeScript project using npm and nvm. Please set up git hooks for it — I want the usual quality gates: linting and formatting on staged files, type checking, and secret scanning before each commit, plus the full test suite before I push. The project is at: PROJECT_DIR",
+      "expected_output": "Husky installed, .husky/pre-commit created with lint-staged + tsc --noEmit + gitleaks protect --staged, .husky/pre-push created with npm test, nvm bootstrap sourced at top of each hook, lint-staged config created, eslint and prettier configs created if absent, gitleaks.toml created, package.json updated with prepare script.",
+      "files": [],
+      "fixture": "fresh-install",
+      "expectations": [
+        "A .husky/pre-commit file is created",
+        "The pre-commit hook calls lint-staged",
+        "The pre-commit hook calls tsc --noEmit",
+        "The pre-commit hook calls gitleaks protect --staged",
+        "A .husky/pre-push file is created",
+        "The pre-push hook calls a test runner (jest, npm test, or equivalent)",
+        "The hook files source the nvm bootstrap snippet (NVM_DIR / nvm.sh) since .nvmrc is present",
+        "A lint-staged config is created covering *.{ts,tsx,js,jsx} files with eslint and prettier commands",
+        "A .gitleaks.toml is created containing useDefault = true",
+        "The hook files contain 'set -e' in the preamble so any step failure aborts the chain",
+        "The .husky/pre-commit file is executable (has execute permission set)",
+        "The .husky/pre-push file is executable (has execute permission set)",
+        "package.json contains a 'prepare' script that invokes husky"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "We have Husky already installed on our project but I think we're missing some checks. Can you audit the git hooks setup and fix any gaps you find? Project is at: PROJECT_DIR",
+      "expected_output": "Audit report listing what passes and what fails. Missing items fixed: tsc --noEmit added to pre-commit, gitleaks added to pre-commit, pre-push hook created with vitest run. Existing lint-staged setup preserved.",
+      "files": [],
+      "fixture": "audit-incomplete",
+      "expectations": [
+        "An audit report or summary is produced that lists which checks passed and which failed",
+        "tsc --noEmit is added to the pre-commit hook (it was missing)",
+        "gitleaks protect --staged is added to the pre-commit hook (it was missing)",
+        "A .husky/pre-push file is created (it was missing)",
+        "The pre-push hook calls the test suite (vitest run directly, or npm test if the test script resolves to vitest)",
+        "The existing lint-staged line in pre-commit is preserved and not overwritten",
+        "The hook files contain 'set -e' in the preamble so any step failure aborts the chain",
+        "The .husky/pre-commit file is executable (has execute permission set)",
+        "The .husky/pre-push file is executable (has execute permission set)"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Our hooks are working well but we need to add a new check to the pre-push hook. We have a script at scripts/check-api-docs.sh that validates API documentation and it should block the push if it fails. Can you wire that up? Project is at: PROJECT_DIR",
+      "expected_output": "Agent detects check-api-docs.sh is already referenced in .husky/pre-push (as './scripts/check-api-docs.sh') and does not add a duplicate. The idempotency check must be broad enough to match the existing './scripts/check-api-docs.sh' invocation when searching for 'check-api-docs'. Existing npm test and check-api-docs.sh lines both preserved exactly once.",
+      "files": [],
+      "fixture": "add-new-check-idempotency-v2",
+      "expectations": [
+        "scripts/check-api-docs.sh is referenced in the pre-push hook",
+        "The existing npm test line is preserved in the pre-push hook",
+        "The script is invoked in a way that blocks the push on failure (no '|| true' or equivalent bypass)",
+        "check-api-docs appears exactly once in the pre-push hook (not duplicated — idempotency holds even though existing invocation uses './scripts/check-api-docs.sh' path prefix)"
+      ]
+    }
+  ]
+}

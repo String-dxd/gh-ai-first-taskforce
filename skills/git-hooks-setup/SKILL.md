@@ -118,6 +118,16 @@ For each failure: add the missing tool, config, or hook content using the refere
 
 ## Hook Requirements
 
+### Hook preamble
+
+Every hook file must open with `set -e` immediately after the shebang. Without it, a failure in an early step (e.g. lint-staged exits non-zero) silently continues to the next step instead of aborting the whole hook:
+
+```sh
+#!/bin/sh
+set -e
+# version manager bootstrap follows (if applicable)
+```
+
 ### Pre-commit — what must run
 
 Configure `.husky/pre-commit` to run in this order:
@@ -270,8 +280,9 @@ For each file: if absent, create it with the baseline. If present, check the bas
 
 ## Adding a New Check
 
-1. Check if the command is already in the hook: `grep -q '<your-command>' .husky/<hook>` — skip if present
-2. Append the command to the hook file; make sure the file is executable (`chmod +x`)
+1. Run `grep -q '<your-command>' .husky/<hook>` as a shell command — if it exits 0 the command is already present; stop here.
+2. If not found, append the command to the hook file using a file edit tool, not a shell redirect (redirects can silently truncate on error).
+3. Make the hook executable: `chmod +x .husky/<hook>`
 
 ---
 

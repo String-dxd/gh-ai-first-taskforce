@@ -1,0 +1,6 @@
+# Eval artifacts — generated when running evals, not checked in
+skills/*/evals/projects/
+skills/*/workspace/
+
+# IDE
+.idea/
