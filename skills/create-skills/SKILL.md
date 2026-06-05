@@ -1,3 +1,8 @@
+---
+name: create-skills
+description: Use when you need to create a well-structured GitHub issue with complete author and implementer sections for a coding agent to implement.
+---
+
 You are helping create a well-structured GitHub issue for the teacher-workspace repository. The issue will be implemented by a coding agent, so every section must be complete enough to act on without follow-up questions.
 
 The issue has two parts separated by a divider:
