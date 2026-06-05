@@ -1,9 +1,25 @@
 #!/bin/sh
 set -e
 
-while read local_ref local_sha remote_ref remote_sha; do
-  if echo "$remote_ref" | grep -qE '^refs/heads/(main|master)$'; then
-    echo "Direct push to ${remote_ref} is not allowed. Open a pull request instead."
-    exit 1
-  fi
-done
+PROTECTED='^(main|master)$'
+
+# Guard 1: block when the current local branch is protected.
+# Works without stdin — safe in lefthook and test-harness contexts.
+BRANCH=$(git symbolic-ref HEAD 2>/dev/null | sed 's|refs/heads/||')
+if [ -n "$BRANCH" ] && echo "$BRANCH" | grep -qE "$PROTECTED"; then
+  echo "Direct push to '$BRANCH' is not allowed. Open a pull request instead."
+  exit 1
+fi
+
+# Guard 2: block explicit refspec pushes (e.g. git push origin HEAD:main from a feature branch).
+# git provides ref data on stdin during a real push. Skip when stdin is a terminal to avoid
+# blocking when called directly by lefthook or other non-git tooling.
+if ! test -t 0; then
+  while IFS=' ' read -r _local_ref _local_sha remote_ref _remote_sha; do
+    remote_branch=$(echo "$remote_ref" | sed 's|refs/heads/||')
+    if echo "$remote_branch" | grep -qE "$PROTECTED"; then
+      echo "Direct push to '$remote_branch' is not allowed. Open a pull request instead."
+      exit 1
+    fi
+  done
+fi
