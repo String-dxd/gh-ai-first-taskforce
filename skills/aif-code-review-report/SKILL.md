@@ -5,8 +5,6 @@ description: Use when asked to review code changes and produce a written feedbac
 
 # Code Review Report
 
-**Before anything else:** spawn a fresh subagent to perform this entire review. Pass it the full skill content as its instructions. The subagent must run every step from scratch — do not carry over any prior conversation context, assumptions, or findings from the current session. This ensures the review is unbiased and free of accumulated context drift.
-
 Produce a structured markdown review report for a set of code changes. Each finding shows the relevant code snippet, the problem, and a concrete suggestion — so the author can act without context-switching.
 
 Use `superpowers:requesting-code-review` instead when you need a fast pass during active development and no saved report is needed.
