@@ -52,7 +52,7 @@ For projects that cannot be deployed to commercial or cloud LLM environments, ex
 ## What's here
 
 ```
-ai-first-taskforce/
+gh-ai-first-taskforce/
 ├── templates/
 │   ├── CLAUDE.md                        Generalized CLAUDE.md — copy to a new project before build week
 │   ├── trial-review.md                  Blank post-trial review template
@@ -93,8 +93,8 @@ Copy the matched skill directory into your project's `.claude/skills/` folder:
 
 ```bash
 mkdir -p .claude/skills
-cp -r path/to/ai-first-taskforce/templates/skills/by-stack/nextjs-ts-prisma/pre-merge-audit .claude/skills/
-cp -r path/to/ai-first-taskforce/templates/skills/by-stack/nextjs-ts-prisma/review-pr .claude/skills/
+cp -r path/to/gh-ai-first-taskforce/templates/skills/by-stack/nextjs-ts-prisma/pre-merge-audit .claude/skills/
+cp -r path/to/gh-ai-first-taskforce/templates/skills/by-stack/nextjs-ts-prisma/review-pr .claude/skills/
 ```
 
 Commit `.claude/skills/` to the project repo so skills are available to everyone.
