@@ -5,6 +5,8 @@ description: Use when asked to review code changes and produce a written feedbac
 
 # Code Review Report
 
+**Before anything else:** spawn a fresh subagent to perform this entire review. Pass it the full skill content as its instructions. The subagent must run every step from scratch — do not carry over any prior conversation context, assumptions, or findings from the current session. This ensures the review is unbiased and free of accumulated context drift.
+
 Produce a structured markdown review report for a set of code changes. Each finding shows the relevant code snippet, the problem, and a concrete suggestion — so the author can act without context-switching.
 
 Use `superpowers:requesting-code-review` instead when you need a fast pass during active development and no saved report is needed.
@@ -25,27 +27,60 @@ Use `superpowers:requesting-code-review` instead when you need a fast pass durin
    - If the branch is `main`, `master`, `develop`, or `dev`, **stop immediately** and tell the user: "Code reviews are for feature branches only — switch to a feature branch and re-run."
    - Sanitise the branch name for use as a directory: replace `/` with `-`, strip characters outside `[a-zA-Z0-9._-]`. Use this sanitised name (`<safe-branch>`) in all subsequent steps.
 2. Check for prior reports: `ls review/<safe-branch>/` (if the directory exists)
-   - If prior reports exist, read the most recent one to find the last reviewed HEAD SHA (recorded in the report's "Reviewed Commits" section), then **prompt the user about prior findings before doing anything else** (see Re-review below)
+   - If prior reports exist, read the most recent one to find the last reviewed HEAD SHA (recorded in the report's "Reviewed Commits" section) and collect all prior findings. Do not prompt the user yet — reconciliation happens after the diff is obtained.
 3. Get the diff:
    - **Detect the default branch:** try `main`, then `master`, then `develop`, then `dev` — use whichever resolves as a local ref (`git rev-parse --verify <name>`). If none resolve, stop and tell the user: "Cannot find a base branch — please run: `git fetch origin` and ensure the default branch is checked out locally".
    - **First review:** `git log <base>..HEAD --oneline` to list all branch commits, then `git diff $(git merge-base HEAD <base>)...HEAD` for the full diff. Record every commit SHA + message.
    - **Subsequent review:** Use the last reviewed HEAD SHA from the prior report. Run `git log <last-sha>..HEAD --oneline` to list new commits only, then `git diff <last-sha>..HEAD` for the delta. Record only the new commits.
-4. Run all 7 review angles; collect candidates with `file`, `line`, `summary`, `failure_scenario`
-5. Deduplicate near-duplicates (same defect, same location → keep one)
-6. Verify each candidate — label as **CONFIRMED**, **PLAUSIBLE**, or **REFUTED**
+4. **[Subsequent review only] Large-delta check** — run this before any analysis to decide whether to treat this as a fresh review:
+   - Compute `delta_files`: `git diff --name-only <last-sha>..HEAD | wc -l`
+   - Compute `branch_files`: `git diff --name-only $(git merge-base HEAD <base>)...HEAD | wc -l`
+   - Compute `delta_lines`: insertions + deletions from `git diff --stat <last-sha>..HEAD`
+   - Compute `branch_lines`: insertions + deletions from `git diff --stat $(git merge-base HEAD <base>)...HEAD`
+   - **Large drift detected** if either condition holds:
+     - `delta_files / branch_files > 0.6` — the delta touches more than 60% of the files ever changed on this branch
+     - `delta_lines / branch_lines > 0.75` — the delta rewrites more than 75% of the original change volume
+   - If large drift is detected: inform the user ("The updated diff is substantially different from what was last reviewed — treating this as a fresh review of the entire branch."), switch to **full-branch diff** (`git diff $(git merge-base HEAD <base>)...HEAD`) and treat as a first review for the 7 review angles. Prior findings are still auto-reconciled in step 9.
+5. Run all 7 review angles on the appropriate scope (delta diff for normal subsequent reviews; full-branch diff for first reviews and large-drift cases); collect candidates with `file`, `line`, `summary`, `failure_scenario`
+6. Deduplicate near-duplicates (same defect, same location → keep one)
+7. Verify each candidate — label as **CONFIRMED**, **PLAUSIBLE**, or **REFUTED**
    - PLAUSIBLE by default for: races, nil on rare-but-reachable paths, falsy-zero, off-by-one, regex missing anchor
    - REFUTED only when provably wrong — cite the exact line or invariant that rules it out
-7. For each CONFIRMED or PLAUSIBLE finding, validate the suggestion before writing it:
+8. For each CONFIRMED or PLAUSIBLE finding, validate the suggestion before writing it:
    - Look for `package.json`, `go.mod`, `requirements.txt`, or `Gemfile` at the repo root
    - If found: check the installed version of any library referenced in the suggestion; if the suggestion uses an API or option not available in that version, revise it to match or note the required upgrade explicitly
    - If none found: note that no manifest was detected, skip version validation, and ensure any shell commands are mentally traced against the failure modes described in the finding
-8. Drop all REFUTED findings — see Rules › Refuted findings
-9. If re-review: reconcile remaining findings with prior dispositions (see Re-review below)
-10. Count total kept findings:
+9. Drop all REFUTED findings — see Rules › Refuted findings
+10. **[Subsequent review only] Auto-reconcile prior findings** — check each prior finding against the current code (do this silently, without prompting):
+
+    | Prior finding state | Preliminary disposition |
+    |---------------------|-------------------------|
+    | Code at the flagged location is fixed | **Resolved** |
+    | Code at the flagged location is gone (refactored away, deleted) | **No longer applicable** |
+    | Finding is still present, unchanged | **Persists** |
+    | Finding partially addressed but problem remains | **Partially addressed** |
+
+11. **[Subsequent review only] Prompt about persisting findings** — only after auto-reconciliation, present the findings still marked Persists or Partially addressed and ask:
+
+    > "After reviewing the updated code, N prior finding(s) are still present:
+    > 1. [One-line summary] — `file:line`, still present
+    > 2. ...
+    >
+    > For each, will it be fixed? If not, please give a reason."
+
+    Wait for the user's response, then apply final dispositions:
+
+    | User response | Final disposition |
+    |---------------|-------------------|
+    | Will be fixed | **Persists** — carry forward into Findings with a `(carried over)` note |
+    | Won't fix — reason given | **Won't fix** — record reason in the Prior Review table; do not carry into Findings |
+    | Not mentioned | Keep the auto-reconciled disposition from step 10 |
+
+12. Count total kept findings (new findings + carried-over prior findings):
     - **< 10:** all findings get full entries including Suggestions
     - **≥ 10:** Critical and Important get full entries; Suggestions roll into a "Cleanup Notes" bullet list
-11. Group findings under `### Critical`, `### Important`, `### Suggestion` subsections — omit any subsection with no entries
-12. Write the report to `review/<safe-branch>/report-<DDMMYYYYHHMMSS>.md` — create the directory if needed: `mkdir -p review/<safe-branch>`
+13. Group findings under `### Critical`, `### Important`, `### Suggestion` subsections — omit any subsection with no entries
+14. Write the report to `review/<safe-branch>/report-<DDMMYYYYHHMMSS>.md` — create the directory if needed: `mkdir -p review/<safe-branch>`
 
 ---
 
@@ -67,28 +102,9 @@ Run all seven. Each surfaces up to 6 candidates.
 
 ## Re-review
 
-**Scope:** Only the new commits (delta since last review) are analysed for new findings through the 7 review angles. Prior findings from the last report are each checked against the current code to assign a disposition (see table below) — they are not re-analysed through the 7 review angles.
+**Scope:** Only the new commits (delta since last review) are analysed for new findings through the 7 review angles, unless large drift is detected (see step 4) — in which case the full branch diff is analysed. Prior findings are auto-reconciled against the current code (step 10) and the user is only prompted about those still present (step 11).
 
-Before running any analysis, present each prior finding as a numbered list and ask:
-
-> "The previous review on `<date>` found N finding(s). For each one, will it be fixed? If not, please give a reason."
-
-Wait for the user's response, then assign dispositions:
-
-| User response | Disposition |
-|---------------|-------------|
-| Will be fixed | **Persists** — carry forward into Findings with a `(carried over)` note |
-| Won't fix — reason given | **Won't fix** — record reason in the Prior Review table; do not carry into Findings |
-| Not mentioned | Reconcile against the diff (table below) |
-
-For findings not covered by the user's response, reconcile against the current diff:
-
-| Prior finding state | Disposition |
-|---------------------|-------------|
-| Code at the flagged location is fixed | **Resolved** |
-| Code at the flagged location is gone (refactored away, deleted) | **No longer applicable** |
-| Finding is still present, unchanged | **Persists** — carry forward |
-| Finding partially addressed but problem remains | **Partially addressed** — carry forward with a note |
+**Large-drift fallback:** When the delta is too large relative to the original reviewed scope, the review defaults to full-branch mode. This prevents a partial delta review from missing regressions introduced alongside the rewrite. Prior findings are still reconciled either way.
 
 ---
 
@@ -99,6 +115,7 @@ For findings not covered by the user's response, reconcile against the current d
 
 > **File:** `review/<safe-branch>/report-<DDMMYYYYHHMMSS>.md`
 > **Based on:** commits up to `<HEAD short SHA>` *(first review: full branch since `<base>`; subsequent: delta since `<prior HEAD SHA>`)*
+> *(Large-drift review: full branch diff used — delta exceeded threshold)* ← include only if large drift was detected
 
 ## Summary
 
@@ -191,7 +208,7 @@ For findings not covered by the user's response, reconcile against the current d
 
 - Path: `review/<safe-branch>/report-<DDMMYYYYHHMMSS>.md` relative to the repo root (`<safe-branch>` defined in step 1)
 - Datetime: local time, 24-hour — e.g. `report-03062026143045.md`
-- After writing (step 12), print: `Report saved: review/<safe-branch>/<filename>.md`
+- After writing (step 14), print: `Report saved: review/<safe-branch>/<filename>.md`
 
 ---
 
