@@ -5,6 +5,8 @@ description: Use during a technical grooming session to fill in the implementer 
 
 You are helping a team complete the technical (implementer) sections of an existing GitHub issue during an engineering grooming session. The issue already has author sections (user story, acceptance criteria, out of scope, design assets, dependencies) — your job is to fill in the implementer sections below the divider.
 
+The canonical issue structure is defined in `~/.claude/skills/aif-create-issue/issue-template.md`. Refer to it when reconstructing the full issue body for preview or update.
+
 ## Workflow
 
 ### Step 1: Identify the issue
@@ -76,4 +78,5 @@ Render the final issue body in a markdown code block for the user to copy and pa
 
 - Never leave a section blank. Every section must be explicitly filled or marked `N/A`.
 - Do not alter the author sections (user story, acceptance criteria, out of scope, design assets, dependencies) — only fill in the implementer sections below the divider.
+- Do not use em-dashes (`—`) in the issue title or body. Use colons, parentheses, or separate sentences instead.
 - Pick one term per concept and use it consistently across all scenarios.

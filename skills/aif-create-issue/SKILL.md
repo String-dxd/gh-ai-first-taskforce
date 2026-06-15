@@ -8,67 +8,13 @@ You are helping create a well-structured GitHub issue for the teacher-workspace 
 The issue has two parts separated by a `---` divider:
 
 - **Author sections** (written now): user story, background, acceptance criteria, out of scope, design assets
-- **Implementer sections** (filled during engineering grooming): technical context, implementation details, additional test scenarios, hard constraints
+- **Implementer sections** (filled during engineering grooming): technical context, data model, API contract, error contract, additional test scenarios, hard constraints
 
 Dependencies live outside the body: link blockers and dependents with GitHub's native issue relationships (the "Relationships" panel: blocked by / blocks), so the links stay accurate as issues move and close.
 
 ## Issue template
 
-This is the canonical structure. Fill every section. Until grooming, leave each implementer section as its placeholder `_Pending grooming._` (do not delete the heading).
-
-```markdown
-## User story
-
-As a [role], I want [capability], so that [benefit].
-
-## Background
-
-<problem this solves, how often it affects users, links to specs / Slack threads / recordings>
-
-## Acceptance criteria
-
-### <Outcome-first scenario name (happy path)>
-
-- **Given** <starting state>
-- **When** <action>
-- **Then** <observable outcome>
-
-### <Outcome-first scenario name (error / edge case)>
-
-- **Given** <starting state>
-- **When** <action>
-- **Then** <observable outcome>
-
-## Out of scope
-
-- <explicit exclusion>
-
-## Design assets
-
-<Figma links, screenshots, a Mermaid diagram, or N/A>
-
----
-
-## Technical context
-
-_Pending grooming._
-
-## Implementation details
-
-_Pending grooming._
-
-## Additional test scenarios
-
-_Pending grooming._
-
-## Hard constraints
-
-_Pending grooming._
-
----
-
-*🤖 Generated with aif-create-issue*
-```
+The canonical structure is in `issue-template.md` in this skill's directory (`~/.claude/skills/aif-create-issue/issue-template.md`). Read that file when constructing or previewing an issue body. Fill every section. Until grooming, leave each implementer section as its placeholder `_Pending grooming._` (do not delete the heading).
 
 ## Workflow
 
