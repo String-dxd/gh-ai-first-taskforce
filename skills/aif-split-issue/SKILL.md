@@ -60,13 +60,30 @@ For each confirmed child issue, create it using the feature template structure. 
 
 **Implementer sections**: leave all fields at their placeholder text. The child issues must go back through grooming before implementation begins. The grooming checklist must be unchecked.
 
-Run for each child:
+Ensure the usage-tracking label exists once (idempotent — `|| true` swallows the error if it already exists):
+
+```
+gh label create "skill:aif-split-issue" --color ededed --description "Created with the aif-split-issue skill" 2>/dev/null || true
+```
+
+Run for each child, applying the label:
 
 ```
 gh issue create \
   --title "<type>(`<scope>`): <child capability, following commit convention>" \
-  --body "<populated body>"
+  --body "<populated body>" \
+  --label "skill:aif-split-issue"
 ```
+
+Append the following visible footer at the very end of each child issue body before passing it to `gh issue create`:
+
+```
+---
+
+*🤖 Generated with aif-split-issue*
+```
+
+The label makes usage queryable with `gh issue list --label "skill:aif-split-issue"`; the footer gives human-readable attribution.
 
 Record each created issue number.
 

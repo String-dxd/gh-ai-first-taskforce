@@ -130,6 +130,11 @@ Every comment posted by this skill ends with the following footer so that skill 
       ---
       *🤖 aif-code-review · {model}*
       ```
+14. Apply the usage-tracking label to the PR so reviewed PRs are queryable with `gh pr list --label "skill:aif-code-review"` (idempotent — `gh label create` exits non-zero if the label already exists, which `|| true` swallows):
+    ```bash
+    gh label create "skill:aif-code-review" --color ededed --description "Reviewed with the aif-code-review skill" 2>/dev/null || true
+    gh pr edit {number} --add-label "skill:aif-code-review"
+    ```
 
 ---
 

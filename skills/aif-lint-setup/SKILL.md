@@ -525,3 +525,27 @@ After installing and configuring:
 1. Run the linter(s) once to confirm they work and surface any initial findings.
 2. Remind the user about hook integration:
    > "Lint is now configured. To enforce it automatically on commit, use the `aif-git-hooks-setup` skill."
+3. Offer to open a PR for these changes — don't force it:
+   > "Want me to open a PR for the lint setup?"
+
+   If yes, ensure the usage-tracking label exists, then create the PR with the label and a visible footer:
+
+   ```bash
+   gh label create "skill:aif-lint-setup" --color ededed --description "Opened with the aif-lint-setup skill" 2>/dev/null || true
+
+   gh pr create --draft \
+     --title "chore: set up linting" \
+     --label "skill:aif-lint-setup" \
+     --body "$(cat <<'EOF'
+   ## Summary
+
+   <!-- Tools configured (linters/formatters) and what changed -->
+
+   ---
+
+   *🤖 Generated with aif-lint-setup*
+   EOF
+   )"
+   ```
+
+   If the user would rather review and push themselves, skip this — but ask them to add the `skill:aif-lint-setup` label and the `*🤖 Generated with aif-lint-setup*` footer when they open the PR. The label makes usage queryable with `gh pr list --label "skill:aif-lint-setup"`.

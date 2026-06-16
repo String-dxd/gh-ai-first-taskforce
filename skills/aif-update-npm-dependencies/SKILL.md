@@ -266,6 +266,40 @@ For each override:
 
 Keeping stale overrides masks future vulnerabilities and makes dependency trees harder to reason about.
 
+## Step 8: Open a PR
+
+Once the audit is clean and tests pass, offer to open a PR — don't force it:
+
+> "Want me to open a PR for these dependency updates?"
+
+If yes, ensure the usage-tracking label exists, then create the PR with the label and a visible footer:
+
+```bash
+gh label create "skill:aif-update-npm-dependencies" --color ededed --description "Opened with the aif-update-npm-dependencies skill" 2>/dev/null || true
+
+gh pr create --draft \
+  --title "chore: update vulnerable dependencies" \
+  --label "skill:aif-update-npm-dependencies" \
+  --body "$(cat <<'EOF'
+## Summary
+
+<!-- Each package updated, the vulnerability fixed, and the approach (direct update / parent upgrade / override) -->
+
+## Audit result
+
+All vulnerabilities resolved. Test suite passes (or: note if there is no test suite).
+
+---
+
+*🤖 Generated with aif-update-npm-dependencies*
+EOF
+)"
+```
+
+If the user would rather review and push themselves, skip this — but ask them to add the `skill:aif-update-npm-dependencies` label and the `*🤖 Generated with aif-update-npm-dependencies*` footer when they open the PR. The label makes usage queryable with `gh pr list --label "skill:aif-update-npm-dependencies"`.
+
+---
+
 ## Common Mistakes
 
 | Mistake                                            | Correct approach                                                                       |

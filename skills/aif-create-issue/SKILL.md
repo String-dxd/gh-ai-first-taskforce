@@ -64,6 +64,10 @@ _Pending grooming._
 ## Hard constraints
 
 _Pending grooming._
+
+---
+
+*🤖 Generated with aif-create-issue*
 ```
 
 ## Workflow
@@ -157,9 +161,15 @@ Render the title and the complete issue body in a markdown code block and ask fo
 
 The body is markdown containing backticks and other shell-special characters, so pass it via a file rather than inline (an inline `--body "..."` would let the shell interpret backticks as command substitution). Write the confirmed body to a temp file and create the issue with `--body-file`:
 
+Ensure the usage-tracking label exists (idempotent — `gh label create` exits non-zero if it already exists, which `|| true` swallows), then create the issue with it:
+
 ```sh
-gh issue create --title "<title>" --body-file /tmp/issue-body.md
+gh label create "skill:aif-create-issue" --color ededed --description "Created with the aif-create-issue skill" 2>/dev/null || true
+
+gh issue create --title "<title>" --body-file /tmp/issue-body.md --label "skill:aif-create-issue"
 ```
+
+The label makes usage queryable with `gh issue list --label "skill:aif-create-issue"` (exact, unlike free-text search), and the `*🤖 Generated with aif-create-issue*` footer in the body template gives human-readable attribution.
 
 After creation, print the issue URL.
 

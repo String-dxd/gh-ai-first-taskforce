@@ -125,9 +125,18 @@ All tests must pass. If any test fails, fix it before proceeding. Do not open a 
 
 The title must match the issue title exactly — it becomes the squash-merge commit message in `main`. Fill in the body sections before running this command.
 
+Ensure the usage-tracking label exists first (idempotent — `|| true` swallows the error if it already exists):
+
+```
+gh label create "skill:aif-implement-issue" --color ededed --description "Opened with the aif-implement-issue skill" 2>/dev/null || true
+```
+
+Then create the PR with the label. The label makes usage queryable with `gh pr list --label "skill:aif-implement-issue"`, and the footer in the body gives human-readable attribution.
+
 ```
 gh pr create --draft \
   --title "<issue title verbatim>" \
+  --label "skill:aif-implement-issue" \
   --body "$(cat <<'EOF'
 Closes #$ARGUMENTS
 
@@ -147,7 +156,7 @@ Closes #$ARGUMENTS
 
 > **Before marking ready for review**: run `pnpm dev:all` and manually walk through the golden-path scenario. Automated tests cover correctness; this step covers integration and visual behaviour.
 
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
+*🤖 Generated with aif-implement-issue*
 EOF
 )"
 ```

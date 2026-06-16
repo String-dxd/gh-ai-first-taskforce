@@ -468,6 +468,36 @@ Make the script executable: `chmod +x scripts/hooks/check-push-target.sh`
 
 ---
 
+## Create a PR
+
+Once the hooks are installed and verified, offer to open a PR — don't force it:
+
+> "Want me to open a PR for these hook changes?"
+
+If yes, ensure the usage-tracking label exists, then create the PR with the label and a visible footer:
+
+```bash
+gh label create "skill:aif-git-hooks-setup" --color ededed --description "Opened with the aif-git-hooks-setup skill" 2>/dev/null || true
+
+gh pr create --draft \
+  --title "chore: set up git hooks" \
+  --label "skill:aif-git-hooks-setup" \
+  --body "$(cat <<'EOF'
+## Summary
+
+<!-- Hook manager (Husky/Lefthook), what runs on pre-commit and pre-push -->
+
+---
+
+*🤖 Generated with aif-git-hooks-setup*
+EOF
+)"
+```
+
+If the user would rather review and push themselves, skip this — but ask them to add the `skill:aif-git-hooks-setup` label and the `*🤖 Generated with aif-git-hooks-setup*` footer when they open the PR, so usage stays trackable. The label makes usage queryable with `gh pr list --label "skill:aif-git-hooks-setup"`.
+
+---
+
 ## Common Mistakes
 
 | Mistake | Fix |
