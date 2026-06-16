@@ -266,6 +266,61 @@ For each override:
 
 Keeping stale overrides masks future vulnerabilities and makes dependency trees harder to reason about.
 
+## Step 8: Commit, push, and open a PR
+
+Once the audit is clean and tests pass, offer to ship the changes — don't force it:
+
+> "Want me to commit these dependency updates to a feature branch, push, and open a PR?"
+
+If the user would rather review and push themselves, skip this — but ask them to add the `skill:aif-update-npm-dependencies` label and the `*🤖 Generated with aif-update-npm-dependencies*` footer when they open the PR. The label makes usage queryable with `gh pr list --label "skill:aif-update-npm-dependencies"`.
+
+If yes, run the full flow:
+
+1. **Branch.** Check `git rev-parse --abbrev-ref HEAD`. If on a trunk branch (`main`, `master`, `develop`), create a feature branch — a PR cannot target the branch it is opened from; otherwise stay on the current feature branch:
+
+   ```bash
+   git checkout -b fix/update-vulnerable-deps
+   ```
+
+2. **Commit** the manifest and lockfile changes — stage only what changed (the exact lockfile depends on the package manager detected in Step 0):
+
+   ```bash
+   git add package.json package-lock.json pnpm-lock.yaml yarn.lock bun.lockb bun.lock pnpm-workspace.yaml 2>/dev/null
+   git commit -m "chore: update vulnerable dependencies"
+   ```
+
+3. **Push** the branch to its remote (a PR needs the branch on the remote first):
+
+   ```bash
+   git push -u origin HEAD
+   ```
+
+4. **Open the PR.** Ensure the usage-tracking label exists, then create the PR with the label and a visible footer:
+
+   ```bash
+   gh label create "skill:aif-update-npm-dependencies" --color ededed --description "Opened with the aif-update-npm-dependencies skill" 2>/dev/null || true
+
+   gh pr create --draft \
+     --title "chore: update vulnerable dependencies" \
+     --label "skill:aif-update-npm-dependencies" \
+     --body "$(cat <<'EOF'
+   ## Summary
+
+   <!-- Each package updated, the vulnerability fixed, and the approach (direct update / parent upgrade / override) -->
+
+   ## Audit result
+
+   All vulnerabilities resolved. Test suite passes (or: note if there is no test suite).
+
+   ---
+
+   *🤖 Generated with aif-update-npm-dependencies*
+   EOF
+   )"
+   ```
+
+---
+
 ## Common Mistakes
 
 | Mistake                                            | Correct approach                                                                       |

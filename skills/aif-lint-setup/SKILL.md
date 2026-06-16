@@ -525,3 +525,48 @@ After installing and configuring:
 1. Run the linter(s) once to confirm they work and surface any initial findings.
 2. Remind the user about hook integration:
    > "Lint is now configured. To enforce it automatically on commit, use the `aif-git-hooks-setup` skill."
+3. Offer to commit, push, and open a PR for these changes — don't force it:
+   > "Want me to commit the lint setup to a feature branch, push, and open a PR?"
+
+   If the user would rather review and push themselves, skip this — but ask them to add the `skill:aif-lint-setup` label and the `*🤖 Generated with aif-lint-setup*` footer when they open the PR. The label makes usage queryable with `gh pr list --label "skill:aif-lint-setup"`.
+
+   If yes, run the full flow:
+
+   **Branch** — check `git rev-parse --abbrev-ref HEAD`. If on a trunk branch (`main`, `master`, `develop`), create a feature branch (a PR cannot target the branch it is opened from); otherwise stay on the current feature branch:
+
+   ```bash
+   git checkout -b chore/setup-linting
+   ```
+
+   **Commit** the config files and `package.json` script changes — stage only what this skill created or changed:
+
+   ```bash
+   git add eslint.config.js .oxlintrc.json biome.json .prettierrc.json .oxfmtrc.json .golangci.yaml .shellcheckrc Makefile package.json 2>/dev/null
+   git commit -m "chore: set up linting"
+   ```
+
+   **Push** the branch to its remote (a PR needs the branch on the remote first):
+
+   ```bash
+   git push -u origin HEAD
+   ```
+
+   **Open the PR** — ensure the usage-tracking label exists, then create the PR with the label and a visible footer:
+
+   ```bash
+   gh label create "skill:aif-lint-setup" --color ededed --description "Opened with the aif-lint-setup skill" 2>/dev/null || true
+
+   gh pr create --draft \
+     --title "chore: set up linting" \
+     --label "skill:aif-lint-setup" \
+     --body "$(cat <<'EOF'
+   ## Summary
+
+   <!-- Tools configured (linters/formatters) and what changed -->
+
+   ---
+
+   *🤖 Generated with aif-lint-setup*
+   EOF
+   )"
+   ```

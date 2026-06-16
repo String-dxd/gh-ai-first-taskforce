@@ -468,6 +468,61 @@ Make the script executable: `chmod +x scripts/hooks/check-push-target.sh`
 
 ---
 
+## Commit, push, and open a PR
+
+Once the hooks are installed and verified, offer to ship the changes — don't force it:
+
+> "Want me to commit these hook changes to a feature branch, push, and open a PR?"
+
+If the user would rather review and push themselves, skip this — but ask them to add the `skill:aif-git-hooks-setup` label and the `*🤖 Generated with aif-git-hooks-setup*` footer when they open the PR, so usage stays trackable. The label makes usage queryable with `gh pr list --label "skill:aif-git-hooks-setup"`.
+
+If yes, run the full flow:
+
+1. **Branch.** Check the current branch with `git rev-parse --abbrev-ref HEAD`. If it is a trunk branch (`main`, `master`, `develop`), create a feature branch — a PR cannot target the branch it is opened from:
+
+   ```bash
+   git checkout -b chore/setup-git-hooks
+   ```
+
+   If already on a feature branch, stay on it.
+
+2. **Commit** the hook files and config:
+
+   ```bash
+   git add .husky lefthook.yml scripts/hooks .gitleaks.toml .lintstagedrc* package.json 2>/dev/null
+   git commit -m "chore: set up git hooks"
+   ```
+
+   Stage only the files this skill actually created or changed — adjust the paths above to match the hook manager used.
+
+3. **Push** the branch to its remote (a PR needs the branch to exist on the remote first):
+
+   ```bash
+   git push -u origin HEAD
+   ```
+
+4. **Open the PR.** Ensure the usage-tracking label exists, then create the PR with the label and a visible footer:
+
+   ```bash
+   gh label create "skill:aif-git-hooks-setup" --color ededed --description "Opened with the aif-git-hooks-setup skill" 2>/dev/null || true
+
+   gh pr create --draft \
+     --title "chore: set up git hooks" \
+     --label "skill:aif-git-hooks-setup" \
+     --body "$(cat <<'EOF'
+   ## Summary
+
+   <!-- Hook manager (Husky/Lefthook), what runs on pre-commit and pre-push -->
+
+   ---
+
+   *🤖 Generated with aif-git-hooks-setup*
+   EOF
+   )"
+   ```
+
+---
+
 ## Common Mistakes
 
 | Mistake | Fix |
