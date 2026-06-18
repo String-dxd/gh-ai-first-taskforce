@@ -59,11 +59,11 @@ The aim is straightforward: every increase in autonomy has a matching guardrail 
 
 Agentic engineering does not remove roles; it moves each one toward direction and verification, and away from mechanical production.
 
-| Role | AI-assisted coding | Structured agentic engineering |
-|---|---|---|
-| **SWE** | Codes with AI help | Maintains the repo's shared rules and checks; sets technical direction; verifies and approves changes |
-| **PM / practitioner** | Asks AI to draft and explain | Writes clear issues agents can implement; defines goals and acceptance; approves outcomes |
-| **DevOps** | Scripts with AI help | Wires the checks and branch protection that let agent and human work merge safely |
+| Role | Traditional development | Unstructured AI use | Structured agentic engineering |
+|---|---|---|---|
+| **SWE** | Writes and reviews all code | Codes with AI help | Maintains the repo's shared rules and checks; sets technical direction; verifies and approves changes |
+| **PM / practitioner** | Writes specs and tracks work by hand | Asks AI to draft and explain | Writes clear issues agents can implement; defines goals and acceptance; approves outcomes |
+| **DevOps** | Manually scripts and operates | Scripts with AI help | Wires the checks and branch protection that let agent and human work merge safely |
 
 Some things hold regardless of how far a team has progressed:
 
