@@ -2,7 +2,7 @@
 
 This document sets out how we intend to modernize software engineering with AI, and how teams can adopt it.
 
-**How does AI modernize software engineering?** Coding agents can now carry out much of the mechanical build loop — drafting issues, writing code, reviewing changes, and fixing what they find. The value is not in using more AI for its own sake; it is in moving that work from scattered, individual experimentation to a **structured, repeatable, and safe** way of working. People spend less time typing and more time deciding what to build and confirming it was built correctly, while agents do the build loop within clear guardrails.
+**What does AI-first software engineering look like, and how do we get there?** Coding agents can now carry out much of the mechanical build loop — drafting issues, writing code, reviewing changes, and fixing what they find. The value is not in using more AI for its own sake; it is in moving that work from scattered, individual experimentation to a **structured, repeatable, and safe** way of working. People spend less time typing and more time deciding what to build and confirming it was built correctly, while agents do the build loop within clear guardrails.
 
 This strategy describes where that journey leads, how teams move along it, and how we keep it safe. Sections 1–5 are for the people doing the work — SWEs, PMs, and DevOps. Section 6 is for the taskforce and contributors who build the supporting toolkit.
 
