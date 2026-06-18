@@ -26,7 +26,7 @@ gh ai-first-taskforce setup
 Skills are available to Claude Code automatically once installed. To get the latest skills after an extension update:
 
 ```sh
-gh extension upgrade ai-first-taskforce && gh ai-first-taskforce setup
+gh extension upgrade gh-ai-first-taskforce && gh ai-first-taskforce setup
 ```
 
 ---
@@ -61,6 +61,8 @@ For projects that cannot be deployed to commercial or cloud LLM environments, ex
 ```
 gh-ai-first-taskforce/
 ├── gh-ai-first-taskforce                Extension entry point — `gh ai-first-taskforce setup`
+├── lefthook.yml                         Lefthook config — pre-commit secret scan, pre-push main protection
+├── hooks/                               Git hook scripts wired up by Lefthook
 ├── skills/                              Claude Code skills (aif-*) installed by the extension
 │   ├── README.md                        Catalogue of installed skills
 │   ├── aif-code-review/
@@ -90,17 +92,7 @@ gh-ai-first-taskforce/
 
 The taskforce ships Claude Code skills as a `gh` extension. Install them with `gh ai-first-taskforce setup` (see [Installation](#installation)) — they land in `~/.claude/skills/` and Claude Code picks them up automatically. Each skill is self-describing: its `SKILL.md` declares when to trigger, so there is no router to maintain.
 
-See [`skills/README.md`](skills/README.md) for the full catalogue.
-
-| Skill | What it does |
-|---|---|
-| `aif-create-issue` | Creates a well-structured GitHub issue with complete author and implementer sections for a coding agent to action. |
-| `aif-split-issue` | Decomposes a GitHub issue into atomic child issues, each sized for a single coding-agent PR. |
-| `aif-implement-issue` | Implements a GitHub issue given an issue number or pasted markdown body. |
-| `aif-code-review` | Reviews code changes — inline PR comments or an interactive local branch review with an optional written report. |
-| `aif-lint-setup` | Sets up linting and/or formatting (ESLint, oxlint, Biome, Prettier, oxfmt, golangci-lint, shellcheck) after auditing gaps. |
-| `aif-git-hooks-setup` | Sets up or audits pre-commit and pre-push git hooks (Husky or Lefthook) for JS/TS, Go, shell, or mixed projects. |
-| `aif-update-npm-dependencies` | Audits and updates vulnerable JS/TS dependencies across npm, pnpm, Yarn, and Bun with a 7-day release cooldown. |
+See [`skills/README.md`](skills/README.md) for the catalogue of installed skills — the single source of truth, kept in sync as skills are added or removed.
 
 For the strategy behind these skills — how teams adopt them, and how the toolkit itself is built — see [AI-First Engineering Strategy](docs/ai-first-engineering-strategy.md).
 
@@ -134,31 +126,7 @@ Before the `gh` extension, review skills were distributed as copy-in templates u
 
 ---
 
-## Contributing
-
-See **[CONTRIBUTING.md](CONTRIBUTING.md)** for the full guide — ways to contribute, branching and commit conventions, how to add a skill, and the quality bar. The essentials:
-
-### Setting up git hooks
-
-This repo uses [Lefthook](https://github.com/evilmartians/lefthook) to manage git hooks. Run once after cloning:
-
-```sh
-brew install lefthook gitleaks
-lefthook install
-```
-
-This activates:
-- **pre-commit** — scans staged changes for secrets via gitleaks
-- **pre-push** — blocks direct pushes to `main`; open a pull request instead
-
-### Guidelines
-
-- Completed trials go in `trials/<project-name>/`.
-- When a gap pattern appears in more than one trial — or recurs in active projects — extract it into `templates/CLAUDE.md` as a rule, or into a skill as an automated check.
-- Keep templates generalized — strip project-specific names, commit hashes, and org-specific tooling before committing to `templates/`.
-- Dates in this repo use ISO format (YYYY-MM-DD).
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the rest, including how to add or improve a skill.
+See **[CONTRIBUTING.md](CONTRIBUTING.md)** for the full guide — ways to contribute, the issue-first workflow, local setup (installing the git hooks), branching and Conventional Commits, how to add a skill and the quality bar, and the PR flow.
 
 ---
 

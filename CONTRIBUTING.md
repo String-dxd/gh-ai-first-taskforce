@@ -119,7 +119,7 @@ Before a skill ships it must clear this bar:
 - **Generalized** — no project-specific names, commit hashes, or org-specific tooling. Replace specifics with `[ ]` placeholders.
 - **Passes the repo gates** — gitleaks pre-commit and human review.
 
-> Eval artifacts (`skills/*/evals/projects/`, `skills/*/workspace/`) are generated locally and **not** committed — they're gitignored. Don't add them to your PR.
+> Eval artifacts are generated locally and **not** committed — they're gitignored. skill-creator writes them to `skills/<skill>-workspace/` (a sibling of the skill directory); don't add those directories to your PR.
 
 ---
 
