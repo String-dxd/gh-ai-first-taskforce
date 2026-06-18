@@ -40,8 +40,8 @@ The checkpoints are a shared vocabulary for where a team is today and what the n
 
 Teams move along the continuum one step at a time, and each increase in what agents do is matched by a guardrail that makes it safe. The pattern is the same at every step:
 
-1. **Try it** on a real piece of work, rather than rolling it out broadly first.
-2. **Add the guardrail** that makes the new autonomy safe before relying on it.
+1. **Try it** on one real task — hand an agent the next slice of work you would normally do by hand — rather than rolling it out broadly first.
+2. **Add the guardrail** that makes the new autonomy safe before relying on it — usually by installing a shared capability rather than building one from scratch.
 3. **Check it helped**, using the signals in Section 5.
 4. **Feed back what you learn** — when an agent does something the rules should have caught, turn that into a rule or check so it cannot recur.
 
@@ -53,11 +53,11 @@ The guardrails that make agentic work safe:
 - **Secrets and branch protection.** Scan changes for secrets before they land, and block direct pushes to the main branch so work goes through review — enforced with automated checks (we use git hooks).
 - **Data sensitivity.** A project's data classification is known before code or data reaches an external model, and the work is matched to an eligible environment (for example, OPEN / OFFICIAL / OFFICIAL-CLOSED). For restricted projects, sensitive material stays on-device.
 
-The aim is straightforward: every increase in autonomy has a matching guardrail in the repo, so structure and trust grow together.
+This is why the shift is carried by a shared toolkit, not by exhortation. A team does not reach the structured end of the continuum by resolving to try harder; it gets there because each guardrail above exists as something it can **install** — a rule, a check, or a review workflow — instead of rebuilding it. Every capability a team adopts is a concrete step up the progression, with the matching guardrail already in hand. Section 6 covers how that toolkit is produced.
 
 ## 4. What changes for people
 
-Agentic engineering does not remove roles; it moves each one toward direction and verification, and away from mechanical production.
+Agentic engineering does not remove roles; it moves each one toward direction and verification, and away from mechanical production. The five checkpoints group into three phases here — traditional (no AI), unstructured AI use (checkpoints 2–3), and structured agentic engineering (checkpoints 4–5):
 
 | Role | Traditional development | Unstructured AI use | Structured agentic engineering |
 |---|---|---|---|
@@ -78,10 +78,10 @@ Adoption should be backed by evidence drawn from real project work, rather than 
 Signals worth tracking:
 
 - **Productivity** — lead time from issue to merged PR; throughput.
-- **Quality** — review findings per change and their severity; escaped defects; how often the gates catch problems before the main branch.
+- **Quality** — review findings per change and their severity; escaped defects; how often the automated checks catch problems before the main branch.
 - **Adoption** — how many repos have shared rules and checks in place; where each repo sits on the progression; the share of changes primarily implemented by agents.
 
-Learning comes mainly from real projects. The practices improve as they are used on live product work: the gaps and ideas that surface there are the main signal for what to improve next. A dedicated trial — goals set up front, gaps logged as they emerge, a short review afterward — is still worth running when a new stack or practice needs proving before it spreads, but most learning now comes from real projects rather than staged trials. Either way, a gap surfaced in real work becomes a rule or check that prevents it recurring.
+Learning comes mainly from real projects. As the practices are used on live product work, the gaps and ideas that surface there are the main signal for what to improve next. A dedicated trial — goals set up front, gaps logged as they emerge, a short review afterward — still has its place when a new stack or practice needs proving before it spreads. Either way, a gap surfaced in real work becomes a rule or check that prevents it recurring.
 
 ## 6. Building the toolkit
 
@@ -96,7 +96,7 @@ We build by a few principles:
 - **Generalized.** A capability drawn from one project is stripped of project-specific detail before it is shared, so it applies broadly.
 - **Proven before shipping.** Nothing is distributed until it has been evaluated and reviewed; an unproven capability fails quietly inside someone else's work.
 
-Each capability follows the same lifecycle: a gap **surfaces** in real use, it is **built** in the lightest form that solves it — a rule, a check, or a skill — it is **proven** against evaluations and the repo's own gates, it is **generalized**, it is **distributed** to teams, and it is **maintained**, where continued use surfaces the next gap. That loop mirrors the adoption loop in Section 3, seen from the producer's side.
+Each capability follows the same lifecycle: a gap **surfaces** in real use, it is **built** in the lightest form that solves it — a rule, a check, or a skill — it is **proven** against evaluations and the repo's own checks, it is **generalized**, it is **distributed** to teams, and it is **maintained**, where continued use surfaces the next gap. That loop mirrors the adoption loop in Section 3, seen from the producer's side.
 
 ---
 
