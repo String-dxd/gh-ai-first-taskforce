@@ -1,6 +1,11 @@
 # AI-First Taskforce
 
-Knowledge repository for the AI-First Taskforce. This repo collects best practices, templates, and lessons learned from trials where non-engineer practitioners build production software with Claude Code.
+The AI-First Taskforce's shared body of knowledge for building production software AI-first. It's captured in two complementary forms:
+
+- **Prose** — best practices, `CLAUDE.md` templates, trial artifacts, and the [AI-First Engineering Strategy](docs/ai-first-engineering-strategy.md).
+- **Skills** — the `aif-*` Claude Code skills under `skills/`: executable workflows *and* a form of documentation, each encoding a best practice precisely enough for an agent to carry it out.
+
+The skills are delivered as a `gh` CLI extension that installs them into your own Claude Code (`~/.claude/skills/`) — see [Installation](#installation).
 
 ---
 
