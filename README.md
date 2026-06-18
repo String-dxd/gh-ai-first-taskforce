@@ -131,6 +131,8 @@ Before the `gh` extension, review skills were distributed as copy-in templates u
 
 ## Contributing
 
+See **[CONTRIBUTING.md](CONTRIBUTING.md)** for the full guide — ways to contribute, branching and commit conventions, how to add a skill, and the quality bar. The essentials:
+
 ### Setting up git hooks
 
 This repo uses [Lefthook](https://github.com/evilmartians/lefthook) to manage git hooks. Run once after cloning:
@@ -147,9 +149,11 @@ This activates:
 ### Guidelines
 
 - Completed trials go in `trials/<project-name>/`.
-- When a gap pattern appears in more than one trial, extract it into `templates/CLAUDE.md` as a rule.
+- When a gap pattern appears in more than one trial — or recurs in active projects — extract it into `templates/CLAUDE.md` as a rule, or into a skill as an automated check.
 - Keep templates generalized — strip project-specific names, commit hashes, and org-specific tooling before committing to `templates/`.
 - Dates in this repo use ISO format (YYYY-MM-DD).
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the rest, including how to add or improve a skill.
 
 ---
 
