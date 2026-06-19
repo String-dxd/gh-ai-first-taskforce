@@ -56,19 +56,33 @@ If any item cannot be checked, ask the user to provide the missing information b
 
 ### Step 4: Preview and confirm
 
+Add a `*🤖 Groomed with aif-groom-issue*` attribution line at the very end of the body. If the issue already has a `🤖` footer block (for example `*🤖 Generated with aif-create-issue*` from issue creation), add the groom line beneath it within the same block rather than starting a new `---` divider. Otherwise, add a `---` divider followed by the groom line:
+
+```
+---
+
+*🤖 Groomed with aif-groom-issue*
+```
+
 Render the complete updated issue body in a markdown code block and ask for confirmation before updating.
 
 ### Step 5: Update the issue
 
+Ensure the usage-tracking label exists (idempotent — `gh label create` exits non-zero if it already exists, which `|| true` swallows):
+
+```sh
+gh label create "skill:aif-groom-issue" --color ededed --description "Groomed with the aif-groom-issue skill" 2>/dev/null || true
+```
+
 **If `gh` was available:**
 
-Run:
+The body is markdown containing backticks and other shell-special characters, so pass it via a file rather than inline (an inline `--body "..."` would let the shell interpret backticks as command substitution). Write the confirmed body to a temp file and update the issue with `--body-file`, applying the label:
 
 ```
-gh issue edit <number> --body "<updated body>"
+gh issue edit <number> --body-file /tmp/issue-body.md --add-label "skill:aif-groom-issue"
 ```
 
-After updating, print the issue URL.
+After updating, print the issue URL. The label makes usage queryable with `gh issue list --label "skill:aif-groom-issue"`; the footer added in Step 4 gives human-readable attribution.
 
 **If `gh` was not available:**
 
