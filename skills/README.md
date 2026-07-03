@@ -6,6 +6,7 @@ Claude Code skills installed by `gh ai-first-taskforce setup`.
 |---|---|
 | [aif-code-review](aif-code-review/SKILL.md) | Reviews code changes — posts findings as inline PR comments or runs an interactive local branch review with an optional written report. |
 | [aif-create-issue](aif-create-issue/SKILL.md) | Creates a well-structured GitHub issue with complete author and implementer sections for a coding agent to action. |
+| [aif-estimate-issue](aif-estimate-issue/SKILL.md) | Estimates story points for a GitHub issue after grooming, using the repo's historical estimates for calibration, a complexity breakdown, and a blindspots checklist. |
 | [aif-git-hooks-setup](aif-git-hooks-setup/SKILL.md) | Sets up or audits pre-commit and pre-push git hooks (Husky or Lefthook) for JS/TS, Go, shell, or mixed projects. |
 | [aif-implement-issue](aif-implement-issue/SKILL.md) | Implements a GitHub issue given an issue number or pasted markdown body. |
 | [aif-lint-setup](aif-lint-setup/SKILL.md) | Sets up linting and/or formatting (ESLint, oxlint, Biome, Prettier, oxfmt, golangci-lint, shellcheck) after detecting project types and auditing gaps. |
