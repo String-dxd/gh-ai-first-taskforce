@@ -26,10 +26,9 @@ Reviews code changes using 7 structured angles across the diff. Posts findings a
 
 | Level | What it means |
 |-------|--------------|
-| **Critical** | Data loss, security vulnerability, or crash on a reachable code path. Must be fixed before merge. |
-| **High** | Logic bug producing a wrong result, broken API contract, missing error handler on a reachable failure path, or race condition. Should be fixed before merge. |
-| **Medium** | Inefficiency with measurable impact, duplicated logic that creates a maintenance risk, missing validation that produces confusing but non-crashing behaviour, or a reuse opportunity that meaningfully reduces risk. Worth addressing soon. |
-| **Low** | Minor cleanup, simplification, style improvement, or naming. Can be deferred without meaningful risk. |
+| 🔴 **Important** | A bug that should be fixed before merging. |
+| 🟡 **Nit** | A minor issue, worth fixing but not blocking. |
+| 🟣 **Pre-existing** | A bug that exists in the codebase but was not introduced by this PR. |
 
 ---
 
@@ -110,10 +109,12 @@ Every comment posted by this skill ends with the following footer so that skill 
 
       | Severity | Count |
       |----------|-------|
-      | Critical | N |
-      | High     | N |
-      | Medium   | N |
-      | Low      | N |
+      | 🔴 Important    | N |
+      | 🟡 Nit          | N |
+      | 🟣 Pre-existing | N |
+
+      ## Reviewer To-Do
+      - Manually test: <scenario> (omit this section if empty)
 
       ## What Looks Good
       - 2–4 specific strengths — name the design decision, not just "good code"
@@ -142,15 +143,16 @@ Run the review, triage each finding interactively with the user, then optionally
    - **Detect the default branch:** try `main`, then `master`, then `develop`, then `dev` — use whichever resolves as a local ref (`git rev-parse --verify <name>`). If none resolve, stop and tell the user: "Cannot find a base branch — please run: `git fetch origin` and ensure the default branch is checked out locally".
    - `git diff $(git merge-base HEAD <base>)...HEAD` for the full diff.
 3. Run the Analysis Phase (below) on the diff from step 2.
-4. Triage each finding with the user — if no findings remain after the Analysis Phase, skip to the next step. Otherwise present findings one at a time in severity order (Critical → High → Medium → Low). For each, show the full finding details (file, line, code excerpt, problem, suggestion) and ask:
+4. Triage each finding with the user — if no findings remain after the Analysis Phase, skip to the next step. Otherwise present findings one at a time in severity order (🔴 Important → 🟡 Nit → 🟣 Pre-existing). For each, show the full finding details (file, line, code excerpt, problem, suggestion) and ask:
 
    > "Fix now or later?"
 
    Record the user's answer against each finding. If the user wants to fix it now, assist with the fix before moving to the next finding — mark it **Fixed** once done. If later, mark it **To be fixed**.
 
 5. Print the full review summary:
-    - Severity counts table (Critical / High / Medium / Low)
+    - Severity counts table (🔴 Important / 🟡 Nit / 🟣 Pre-existing)
     - All findings grouped by triage: **Fixed** first, then **To be fixed** — each with severity, file, line, and one-line summary
+    - Reviewer To-Do — manual-test items for scenarios with no automated test (omit if empty)
     - What Looks Good (2–4 specific strengths)
 
 6. Ask: "Would you like to generate a written report?"
@@ -163,17 +165,18 @@ Run the review, triage each finding interactively with the user, then optionally
 
 Shared by both paths — run on the diff produced by that path's diff-sourcing step, then continue with the path's remaining steps.
 
-1. Run all 7 review angles (see Review Angles) on the diff; collect candidates with `file`, `line`, `summary`, `failure_scenario`, and assign a severity level (Critical / High / Medium / Low) based on the Severity Levels table.
-2. Deduplicate near-duplicates (same defect, same location → keep one).
-3. Verify each candidate — label as **CONFIRMED**, **PLAUSIBLE**, or **REFUTED**.
+1. Run the PR & Issue Check (below) — this must complete before the review angles.
+2. Run all 7 review angles (see Review Angles) on the diff; collect candidates with `file`, `line`, `summary`, `failure_scenario`, and assign a severity level (🔴 Important / 🟡 Nit / 🟣 Pre-existing) based on the Severity Levels table.
+3. Deduplicate near-duplicates (same defect, same location → keep one).
+4. Verify each candidate — label as **CONFIRMED**, **PLAUSIBLE**, or **REFUTED**.
    - PLAUSIBLE by default for: races, nil on rare-but-reachable paths, falsy-zero, off-by-one, regex missing anchor
    - REFUTED only when provably wrong — cite the exact line or invariant that rules it out
-4. For each CONFIRMED or PLAUSIBLE finding, validate the suggestion:
+5. For each CONFIRMED or PLAUSIBLE finding, validate the suggestion:
    - Look for `package.json`, `go.mod`, `requirements.txt`, or `Gemfile` at the repo root
    - If found: verify any library referenced in the suggestion is available in the installed version; revise or note a required upgrade if not
    - If none found: note no manifest detected and mentally trace any shell commands against the failure modes described
-5. Drop all REFUTED findings — see Rules › Refuted findings.
-6. **Agent pattern classification** — for each remaining CONFIRMED or PLAUSIBLE finding, check it against the `Pattern name` / `Trigger` columns in `review/agent-patterns.md`. If the file doesn't exist yet, create it by copying this skill's `templates/agent-patterns-seed.md`. Tag matching findings `[AI-PATTERN]`.
+6. Drop all REFUTED findings — see Rules › Refuted findings.
+7. **Agent pattern classification** — for each remaining CONFIRMED or PLAUSIBLE finding, check it against the `Pattern name` / `Trigger` columns in `review/agent-patterns.md`. If the file doesn't exist yet, create it by copying this skill's `templates/agent-patterns-seed.md`. Tag matching findings `[AI-PATTERN]`.
 
    For each tagged finding, look for the matching row in the Pattern name column (case-insensitive substring):
    - **Seed row, unobserved** (`Confirmed by: 0`) — fill in `First seen` (today), `Concrete example` (this instance), `Severity` (this finding's severity), and set `Confirmed by` to `1 review`.
@@ -187,6 +190,35 @@ Shared by both paths — run on the diff produced by that path's diff-sourcing s
    - Remove the pattern's row from `review/agent-patterns.md`.
    - Prepend a promotion comment above the table: `<!-- AP-NNN "<Pattern name>" promoted to <tool> (<tier>) on <date> -->`
    - If the guard requires CI pipeline changes, surface a recommendation to the developer instead of implementing directly.
+
+---
+
+## PR & Issue Check
+
+Run as Analysis Phase step 1, before the review angles. The goal: confirm the change is validated against the issue it addresses and that the test coverage matches what was promised.
+
+1. **Resolve the PR.**
+   - PR Review Path: already fetched in that path's steps 1–2.
+   - Local Branch Review Path: check whether the current branch has an open PR: `gh pr view --json number,title,body,closingIssuesReferences`. If none exists, print "No PR found for this branch — skipping issue and test plan checks" and skip the rest of this section entirely.
+2. **Resolve the linked issue.**
+   - Read `closingIssuesReferences` from the PR — the issue(s) it will close via `Closes #NNN` / `Fixes #NNN` / `Resolves #NNN`. If more than one is linked, use the first.
+   - If one is linked, fetch it: `gh issue view {number} --json title,body`.
+   - If none are linked, ask the reviewer:
+     > "No issue is linked to this PR. Pass an issue number to check against, or reply 'proceed' to continue without an issue check."
+     - Number provided → fetch it as above.
+     - "Proceed" → no issue for the rest of this check; skip step 4 below.
+3. **Check the PR has a test plan.** Look for a "Test plan" / "Testing" / "How to test" section in the PR body. If missing, treat it as an empty test plan and continue.
+4. **Check the test plan covers the issue's acceptance criteria** (skip if no issue was resolved in step 2). The issue follows the `aif-create-issue` template — each entry under `## Acceptance criteria` is a Given-When-Then scenario. For each scenario, check whether the test plan describes exercising it (semantic match, not exact wording).
+   - All covered → continue to step 5.
+   - Any uncovered → ask the reviewer:
+     > "The test plan doesn't cover these acceptance criteria scenarios: <list>. Continue the review anyway?"
+     - No → stop the review here; the reviewer should update the PR's test plan first.
+     - Yes → continue to step 5, carrying the uncovered scenarios into it alongside the test plan's own scenarios.
+5. **Check automated tests correspond to the test plan.** Look at the diff for test files added or modified. For each scenario from the test plan (plus any uncovered acceptance-criteria scenarios carried from step 4), check whether an automated test exercises it.
+   - All covered → done, continue to the review angles.
+   - Any scenario with no automated test:
+     - File it directly as a 🔴 **Important** finding — "Missing automated test for: <scenario>" — alongside the review angles' findings. It's a confirmed process gap, not a speculative candidate, so it skips dedup/verify (Analysis Phase steps 3–4) and goes straight into the final findings list.
+     - Add the same scenario to the **Reviewer To-Do** list — "Manually test: <scenario>" — printed with the review summary (see Rules).
 
 ---
 
@@ -324,10 +356,9 @@ gh pr comment {pr_number} --body "$BODY"
 
 | Severity | Count |
 |----------|-------|
-| Critical | N |
-| High     | N |
-| Medium   | N |
-| Low      | N |
+| 🔴 Important    | N |
+| 🟡 Nit          | N |
+| 🟣 Pre-existing | N |
 
 <One paragraph: what the change does well, the biggest risk, recommended next step.>
 
@@ -335,7 +366,7 @@ gh pr comment {pr_number} --body "$BODY"
 
 ## Findings
 
-Each finding follows this structure, grouped under `### Critical`, `### High`, `### Medium`, `### Low` — omit any section with no entries.
+Each finding follows this structure, grouped under `### 🔴 Important`, `### 🟡 Nit`, `### 🟣 Pre-existing` — omit any section with no entries.
 
 #### 1. <One-sentence summary>
 
@@ -353,6 +384,14 @@ Each finding follows this structure, grouped under `### Critical`, `### High`, `
 ```
 
 > Optional one-line tradeoff note.
+
+---
+
+## Reviewer To-Do
+
+*(omit this section if empty)*
+
+- Manually test: <scenario with no automated test>
 
 ---
 
@@ -387,7 +426,7 @@ Used by the Analysis Phase (shared by both review paths) to persist and promote 
 - **Prevention**: one sentence, imperative voice, stating what to do instead
 - **Concrete example**: one sentence anchored to this project with a file path or function name — `—` for an unobserved seed row
 - **First seen**: ISO date — `—` for an unobserved seed row
-- **Severity**: Critical / High / Medium / Low — `—` for an unobserved seed row
+- **Severity**: 🔴 Important / 🟡 Nit / 🟣 Pre-existing — `—` for an unobserved seed row
 - **Confirmed by**: `N review(s)` — `0` for an unseeded, unobserved row; set to `1 review` on its first real match; incremented on each recurrence
 
 ### Programmability evaluation (triggered at `Confirmed by: 3`)
@@ -433,3 +472,5 @@ A pattern is promotable when: Specificity OK, Repeatability YES, Semantic depend
 **Scope:** every confirmed or plausible finding regardless of severity — no cap
 
 **Refuted findings:** drop silently — no struck-through text, no "considered but dismissed" note, no mention at all
+
+**Reviewer To-Do:** one bullet per scenario with no automated test, phrased as an action ("Manually test: ..."); include the section in every summary/report where it's non-empty, omit it entirely when empty — never print an empty heading

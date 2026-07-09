@@ -17,7 +17,7 @@
       "expected_output": "Skill runs all 7 review angles on the branch diff, triages all findings as 'To be fixed', prints a severity counts table and What Looks Good section. No report file is written to the review/ directory.",
       "files": [],
       "assertions": [
-        "Output contains a severity counts table (Critical / High / Medium / Low)",
+        "Output contains a severity counts table (🔴 Important / 🟡 Nit / 🟣 Pre-existing)",
         "Output contains 'To be fixed' (triage status applied)",
         "Output contains 'What Looks Good' section with at least one bullet",
         "No file created under review/ directory"
