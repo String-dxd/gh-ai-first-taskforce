@@ -83,15 +83,15 @@ Run as Analysis Phase step 1, before the review angles. The goal: confirm the ch
 1. **Resolve the PR.**
    - PR Review Path: already fetched in that path's steps 1–2.
    - Local Branch Review Path: check whether the current branch has an open PR: `gh pr view --json number,title,body,closingIssuesReferences`. If none exists, print "No PR found for this branch — skipping issue and test plan checks" and skip the rest of this section entirely.
-2. **Resolve the linked issue.**
-   - Read `closingIssuesReferences` from the PR — the issue(s) it will close via `Closes #NNN` / `Fixes #NNN` / `Resolves #NNN`. If more than one is linked, use the first.
-   - If one is linked, fetch it: `gh issue view {number} --json title,body`.
+2. **Resolve the linked issue(s).**
+   - Read `closingIssuesReferences` from the PR — the issue(s) it will close via `Closes #NNN` / `Fixes #NNN` / `Resolves #NNN`. If more than one is linked, use all of them.
+   - If one or more are linked, fetch each: `gh issue view {number} --json title,body`.
    - If none are linked, ask the reviewer:
      > "No issue is linked to this PR. Pass an issue number to check against, or reply 'proceed' to continue without an issue check."
      - Number provided → fetch it as above.
      - "Proceed" → no issue for the rest of this check; skip step 4 below.
 3. **Check the PR has a test plan.** Look for a "Test plan" / "Testing" / "How to test" section in the PR body. If missing, treat it as an empty test plan and continue.
-4. **Check the test plan covers the issue's acceptance criteria** (skip if no issue was resolved in step 2). The issue follows the `aif-create-issue` template — each entry under `## Acceptance criteria` is a Given-When-Then scenario. For each scenario, check whether the test plan describes exercising it (semantic match, not exact wording).
+4. **Check the test plan covers the linked issue(s)' acceptance criteria** (skip if no issue was resolved in step 2). Each issue follows the `aif-create-issue` template — each entry under `## Acceptance criteria` is a Given-When-Then scenario. For each scenario across all linked issues, check whether the test plan describes exercising it (semantic match, not exact wording).
    - All covered → continue to step 5.
    - Any uncovered → ask the reviewer:
      > "The test plan doesn't cover these acceptance criteria scenarios: <list>. Continue the review anyway?"
