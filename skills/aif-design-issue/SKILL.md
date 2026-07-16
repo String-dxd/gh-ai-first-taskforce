@@ -189,7 +189,9 @@ For any scenario on the validation checklist:
 
 ## Step 10: Open a draft PR as handoff
 
-Once all scenarios are implemented and every validation checklist item is addressed or explicitly deferred with a reason recorded in `design-spec.md`:
+Once all scenarios are implemented and every validation checklist item is addressed or explicitly deferred with a reason recorded in `design-spec.md`, write the PR body to `/tmp/design-pr-body.md` using the template in [reference/pr-body-template.md](reference/pr-body-template.md).
+
+Fill the acceptance criteria table with one row per AC scenario: the scenario name, the path to its E2E test file, and whether it passed (✅) or failed (❌) in the Step 8 run. Every row must be filled — do not omit scenarios or leave the pass/fail column blank.
 
 ```sh
 gh label create "skill:aif-design-issue" --color ededed --description "Designed with the aif-design-issue skill" 2>/dev/null || true

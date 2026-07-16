@@ -4,6 +4,12 @@ Designs #<issue number>
 
 <!-- What was designed and the key decisions made -->
 
+## Acceptance criteria
+
+| Scenario | Test file | Passed |
+|----------|-----------|--------|
+| <Scenario name> | `<path/to/test.spec.ts>` | ✅ / ❌ |
+
 ## Validation
 
 <!-- Which scenarios were user-tested, which were deferred and why -->
