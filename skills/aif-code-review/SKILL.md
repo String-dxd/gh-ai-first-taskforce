@@ -17,8 +17,8 @@ Reviews code changes using 7 structured angles across the diff. Posts findings a
 > - **PR** — if a PR link or number wasn't provided, ask for it now.
 > - **Local branch** — proceed.
 
-- **PR** → spawn a fresh subagent and pass it: the full skill content, the selected mode, and the PR number. The subagent runs the PR Review Path from scratch — no user interaction is needed.
-- **Local branch** → before doing anything else, explicitly state: *"Starting fresh local branch review — all prior session context discarded."* Then treat every subsequent step as if this were the first message in a new conversation: no prior analysis, no prior findings, no prior assumptions. Run the Local Branch Review Path from step 1. (Interactive triage in step 8 means this path cannot run as a subagent.)
+- **PR** → spawn a fresh subagent and pass it: this `SKILL.md`, [references/pr-review-path.md](references/pr-review-path.md), the selected mode, and the PR number. The subagent runs the PR Review Path from scratch — no user interaction is needed.
+- **Local branch** → before doing anything else, explicitly state: *"Starting fresh local branch review — all prior session context discarded."* Then treat every subsequent step as if this were the first message in a new conversation: no prior analysis, no prior findings, no prior assumptions. Read [references/local-branch-review-path.md](references/local-branch-review-path.md) and run its Steps from step 1. (Interactive triage in step 4 means this path cannot run as a subagent.)
 
 ---
 
@@ -26,154 +26,82 @@ Reviews code changes using 7 structured angles across the diff. Posts findings a
 
 | Level | What it means |
 |-------|--------------|
-| **Critical** | Data loss, security vulnerability, or crash on a reachable code path. Must be fixed before merge. |
-| **High** | Logic bug producing a wrong result, broken API contract, missing error handler on a reachable failure path, or race condition. Should be fixed before merge. |
-| **Medium** | Inefficiency with measurable impact, duplicated logic that creates a maintenance risk, missing validation that produces confusing but non-crashing behaviour, or a reuse opportunity that meaningfully reduces risk. Worth addressing soon. |
-| **Low** | Minor cleanup, simplification, style improvement, or naming. Can be deferred without meaningful risk. |
+| 🔴 **Important** | A bug that should be fixed before merging. |
+| 🟡 **Nit** | A minor issue, worth fixing but not blocking. |
+| 🟣 **Pre-existing** | A bug that exists in the codebase but was not introduced by this PR. |
 
 ---
 
 ## PR Review Path
 
-Source the diff from GitHub via `gh` — the branch does not need to be checked out locally. No report file is written; all findings are posted as inline PR comments.
-
-**Focus:** correctness first. The goal is to catch bugs, broken contracts, and missing error handling before the code merges — not to push cleanup or style improvements. When running the lower-altitude angles (Simplification, Reuse, Efficiency, Altitude), apply judgment: only raise findings that represent a genuine problem, not cosmetic preferences.
-
-### Skill marker
-
-Every comment posted by this skill ends with the following footer so that skill comments are identifiable on re-reviews. Replace `{model}` with the model ID powering the current session (e.g. `claude-sonnet-4-6`):
-
-```
----
-*🤖 aif-code-review · {model}*
-```
-
-### Steps
-
-1. Parse the PR number:
-   - Full URL (e.g. `https://github.com/owner/repo/pull/42`) → extract the trailing number.
-   - Number provided directly → use as-is.
-2. Fetch PR metadata and repo identity:
-   ```bash
-   gh pr view {number} --json number,headRefName,headRefOid,baseRefName,title
-   gh repo view --json owner,name
-   ```
-3. Fetch all existing review threads on the PR — used for both deduplication (step 10) and conversation resolution (step 11):
-   ```bash
-   gh api graphql -f query='
-   query($owner: String!, $repo: String!, $number: Int!) {
-     repository(owner: $owner, name: $repo) {
-       pullRequest(number: $number) {
-         reviewThreads(first: 100) {
-           nodes {
-             id
-             isResolved
-             comments(first: 1) {
-               nodes { body path originalLine }
-             }
-           }
-         }
-       }
-     }
-   }' -f owner="{owner}" -f repo="{repo}" -F number={number}
-   ```
-   From the result, derive two sets:
-   - **All open threads** — all threads where `isResolved` is false (used for dedup in step 10)
-   - **Open skill threads** — subset where `comments[0].body` also contains `aif-code-review` (used for resolution in step 11)
-4. Fetch the full PR diff:
-   ```bash
-   gh pr diff {number}
-   ```
-5. Run all 7 review angles on the diff; collect candidates with `file`, `line`, `summary`, `failure_scenario`, and assign a severity level (Critical / High / Medium / Low) to each based on the Severity Levels table
-6. Deduplicate near-duplicates (same defect, same location → keep one)
-7. Verify each candidate — label as **CONFIRMED**, **PLAUSIBLE**, or **REFUTED**
-   - PLAUSIBLE by default for: races, nil on rare-but-reachable paths, falsy-zero, off-by-one, regex missing anchor
-   - REFUTED only when provably wrong — cite the exact line or invariant that rules it out
-8. For each CONFIRMED or PLAUSIBLE finding, validate the suggestion:
-   - Look for `package.json`, `go.mod`, `requirements.txt`, or `Gemfile` at the repo root
-   - If found: verify any library referenced in the suggestion is available in the installed version; revise or note a required upgrade if not
-   - If none found: note no manifest detected and mentally trace any shell commands against the failure modes described
-9. Drop all REFUTED findings — see Rules › Refuted findings
-10. Deduplicate against existing comments — using the **all open threads** set from step 3, check each remaining finding against every open thread. If any thread's comment already addresses the same issue at the same `path` and `originalLine`, or raises the same concern in substance (regardless of who posted it), skip posting to avoid repeating feedback already given.
-11. Resolve addressed conversations — for each open skill thread, check whether the current diff has addressed the issue it describes. If yes, resolve the thread:
-    ```bash
-    gh api graphql -f query='
-    mutation($threadId: ID!) {
-      resolveReviewThread(input: {threadId: $threadId}) {
-        thread { isResolved }
-      }
-    }' -f threadId="{thread_id}"
-    ```
-12. Post each remaining new finding as an inline PR comment — see Inline Comment Format.
-13. Determine outcome and print summary:
-    - **No new findings and no open skill threads remaining** (all were resolved in step 11): post the following as a PR comment, then print `Review complete — LGTM posted to PR #{number}.`
-      ```
-      LGTM 👍
-
-      ---
-      *🤖 aif-code-review · {model}*
-      ```
-    - **Otherwise**: post the following as a PR comment, then print `Review complete — posted N comment(s) to PR #{number}.`
-      ```
-      ## Code Review Summary
-
-      | Severity | Count |
-      |----------|-------|
-      | Critical | N |
-      | High     | N |
-      | Medium   | N |
-      | Low      | N |
-
-      ## What Looks Good
-      - 2–4 specific strengths — name the design decision, not just "good code"
-
-      ---
-      *🤖 aif-code-review · {model}*
-      ```
-14. Apply the usage-tracking label to the PR so reviewed PRs are queryable with `gh pr list --label "skill:aif-code-review"` (idempotent — `gh label create` exits non-zero if the label already exists, which `|| true` swallows):
-    ```bash
-    gh label create "skill:aif-code-review" --color ededed --description "Reviewed with the aif-code-review skill" 2>/dev/null || true
-    gh pr edit {number} --add-label "skill:aif-code-review"
-    ```
+Source the diff from GitHub via `gh` — the branch does not need to be checked out locally. No report file is written; all findings are posted as inline PR comments. See [references/pr-review-path.md](references/pr-review-path.md) for the full steps.
 
 ---
 
 ## Local Branch Review Path
 
-Run the review, triage each finding interactively with the user, then optionally generate a report at the end. Every invocation is treated as a fresh review of the full branch.
+Run the review, triage each finding interactively with the user, then optionally generate a report at the end. See [references/local-branch-review-path.md](references/local-branch-review-path.md) for the full steps.
 
-### Steps
+---
 
-1. Get branch name: `git rev-parse --abbrev-ref HEAD`
-   - If the branch is `main`, `master`, `develop`, or `dev`, **stop immediately** and tell the user: "Code reviews are for feature branches only — switch to a feature branch and re-run."
-   - Sanitise the branch name for use as a directory: replace `/` with `-`, strip characters outside `[a-zA-Z0-9._-]`. Store as `<safe-branch>` — used for the report path in step 10 if the user requests one.
-2. Get the diff:
-   - **Detect the default branch:** try `main`, then `master`, then `develop`, then `dev` — use whichever resolves as a local ref (`git rev-parse --verify <name>`). If none resolve, stop and tell the user: "Cannot find a base branch — please run: `git fetch origin` and ensure the default branch is checked out locally".
-   - `git diff $(git merge-base HEAD <base>)...HEAD` for the full diff.
-3. Run all 7 review angles on the full diff; collect candidates with `file`, `line`, `summary`, `failure_scenario`, and assign a severity level (Critical / High / Medium / Low) to each based on the Severity Levels table
-4. Deduplicate near-duplicates (same defect, same location → keep one)
-5. Verify each candidate — label as **CONFIRMED**, **PLAUSIBLE**, or **REFUTED**
+## Analysis Phase
+
+Shared by both paths — run on the diff produced by that path's diff-sourcing step, then continue with the path's remaining steps.
+
+1. Run the PR & Issue Check (below) — this must complete before the review angles.
+2. Run all 7 review angles (see Review Angles) on the diff; collect candidates with `file`, `line`, `summary`, `failure_scenario`, and assign a severity level (🔴 Important / 🟡 Nit / 🟣 Pre-existing) based on the Severity Levels table.
+3. Deduplicate near-duplicates (same defect, same location → keep one).
+4. Verify each candidate — label as **CONFIRMED**, **PLAUSIBLE**, or **REFUTED**.
    - PLAUSIBLE by default for: races, nil on rare-but-reachable paths, falsy-zero, off-by-one, regex missing anchor
    - REFUTED only when provably wrong — cite the exact line or invariant that rules it out
-6. For each CONFIRMED or PLAUSIBLE finding, validate the suggestion:
+5. For each CONFIRMED or PLAUSIBLE finding, validate the suggestion:
    - Look for `package.json`, `go.mod`, `requirements.txt`, or `Gemfile` at the repo root
-   - If found: check the installed version of any library referenced in the suggestion; if the suggestion uses an API or option not available in that version, revise it to match or note the required upgrade explicitly
-   - If none found: note that no manifest was detected, skip version validation, and ensure any shell commands are mentally traced against the failure modes described in the finding
-7. Drop all REFUTED findings — see Rules › Refuted findings
-8. Triage each finding with the user — if no findings remain after step 7, skip to step 9. Otherwise present findings one at a time in severity order (Critical → High → Medium → Low). For each, show the full finding details (file, line, code excerpt, problem, suggestion) and ask:
+   - If found: verify any library referenced in the suggestion is available in the installed version; revise or note a required upgrade if not
+   - If none found: note no manifest detected and mentally trace any shell commands against the failure modes described
+6. Drop all REFUTED findings — see Rules › Refuted findings.
+7. **Agent pattern classification** — for each remaining CONFIRMED or PLAUSIBLE finding, check it against the `Pattern name` / `Trigger` columns in `review/agent-patterns.md`. If the file doesn't exist yet, create it by copying this skill's [assets/agent-patterns-seed.md](assets/agent-patterns-seed.md). Tag matching findings `[AI-PATTERN]`.
 
-   > "Fix now or later?"
+   For each tagged finding, look for the matching row in the Pattern name column (case-insensitive substring):
+   - **Seed row, unobserved** (`Confirmed by: 0`) — fill in `First seen` (today), `Concrete example` (this instance), `Severity` (this finding's severity), and set `Confirmed by` to `1 review`.
+   - **Already observed** (`Confirmed by` ≥ 1) — increment `Confirmed by` and append `(also seen: <file>)` to the `Concrete example`.
+   - **No match at all** (a pattern outside the 9 seeds) — append a new row: next sequential `AP-NNN` ID, directive Pattern name, one-sentence Trigger, one-sentence Prevention instruction, one project-anchored Concrete example, today's ISO date, severity, `1 review`.
 
-   Record the user's answer against each finding. If the user wants to fix it now, assist with the fix before moving to the next finding — mark it **Fixed** once done. If later, mark it **To be fixed**.
+   Commit the file: `docs(review): update agent-patterns.md [skip ci]`
 
-9. Print the full review summary:
-   - Severity counts table (Critical / High / Medium / Low)
-   - All findings grouped by triage: **Fixed** first, then **To be fixed** — each with severity, file, line, and one-line summary
-   - What Looks Good (2–4 specific strengths)
+   For any pattern whose `Confirmed by` count has just reached 3, evaluate it against the programmability criteria (Specificity, Repeatability, Speed, Tool availability, Semantic dependency — see [references/agent-pattern-registry.md](references/agent-pattern-registry.md)). If it passes:
+   - Implement the guard using `aif-lint-setup` (lint rule) or `aif-git-hooks-setup` (hook script) as appropriate.
+   - Remove the pattern's row from `review/agent-patterns.md`.
+   - Prepend a promotion comment above the table: `<!-- AP-NNN "<Pattern name>" promoted to <tool> (<tier>) on <date> -->`
+   - If the guard requires CI pipeline changes, surface a recommendation to the developer instead of implementing directly.
 
-10. Ask: "Would you like to generate a written report?"
-    - **Yes** → write the report to `review/<safe-branch>/report-<YYYYMMDDHHMMSS>.md` (create the directory if needed: `mkdir -p review/<safe-branch>`). The report follows the Report Template; include each finding's triage status alongside its entry. Print: `Report saved: review/<safe-branch>/<filename>.md`
-    - **No** → done.
+---
+
+## PR & Issue Check
+
+Run as Analysis Phase step 1, before the review angles. The goal: confirm the change is validated against the issue it addresses and that the test coverage matches what was promised.
+
+1. **Resolve the PR.**
+   - PR Review Path: already fetched in that path's steps 1–2.
+   - Local Branch Review Path: check whether the current branch has an open PR: `gh pr view --json number,title,body,closingIssuesReferences`. If none exists, print "No PR found for this branch — skipping issue and test plan checks" and skip the rest of this section entirely.
+2. **Resolve the linked issue(s).**
+   - Read `closingIssuesReferences` from the PR — the issue(s) it will close via `Closes #NNN` / `Fixes #NNN` / `Resolves #NNN`. If more than one is linked, use all of them.
+   - If one or more are linked, fetch each: `gh issue view {number} --json title,body`.
+   - If none are linked, ask the reviewer:
+     > "No issue is linked to this PR. Pass an issue number to check against, or reply 'proceed' to continue without an issue check."
+     - Number provided → fetch it as above.
+     - "Proceed" → no issue for the rest of this check; skip step 4 below.
+3. **Check the PR has a test plan.** Look for a "Test plan" / "Testing" / "How to test" section in the PR body. If missing, treat it as an empty test plan and continue.
+4. **Check the test plan covers the linked issue(s)' acceptance criteria** (skip if no issue was resolved in step 2). Each issue follows the `aif-create-issue` template — each entry under `## Acceptance criteria` is a Given-When-Then scenario. For each scenario across all linked issues, check whether the test plan describes exercising it (semantic match, not exact wording).
+   - All covered → continue to step 5.
+   - Any uncovered → ask the reviewer:
+     > "The test plan doesn't cover these acceptance criteria scenarios: <list>. Continue the review anyway?"
+     - No → stop the review here; the reviewer should update the PR's test plan first.
+     - Yes → continue to step 5, carrying the uncovered scenarios into it alongside the test plan's own scenarios.
+5. **Check automated tests correspond to the test plan.** Look at the diff for test files added or modified. For each scenario from the test plan (plus any uncovered acceptance-criteria scenarios carried from step 4), check whether an automated test exercises it.
+   - All covered → done, continue to the review angles.
+   - Any scenario with no automated test:
+     - File it directly as a 🔴 **Important** finding — "Missing automated test for: <scenario>" — alongside the review angles' findings. It's a confirmed process gap, not a speculative candidate, so it skips dedup/verify (Analysis Phase steps 3–4) and goes straight into the final findings list.
+     - Add the same scenario to the **Reviewer To-Do** list — "Manually test: <scenario>" — printed with the review summary (see Rules).
 
 ---
 
@@ -256,97 +184,19 @@ Look for band-aid patches to shared infrastructure instead of fixing the underly
 
 ## Inline Comment Format
 
-Used by the PR Review Path (step 12). All values are already available from steps 1–2: owner and repo from `gh repo view`, PR number from step 1, and `{head_sha}` from the `headRefOid` field in the `gh pr view` response.
-
-### Posting each finding
-
-Assign the body to a variable first to avoid shell escaping issues with multiline content:
-
-```bash
-BODY="**[Severity] One-sentence summary**
-
-\`\`\`<lang>
-// 5–10 lines of context; problem line marked with // ←
-\`\`\`
-
-**Problem:** What breaks, what input/state triggers it, what goes wrong.
-
-**Suggestion:**
-\`\`\`<lang>
-// Corrected version
-\`\`\`
-
----
-*🤖 aif-code-review · {model}*"
-
-gh api \
-  --method POST \
-  "repos/{owner}/{repo}/pulls/{pr_number}/comments" \
-  -f body="$BODY" \
-  -f commit_id="{head_sha}" \
-  -f path="{file_path}" \
-  -F line={line_number} \
-  -f side="RIGHT"
-```
-
-**Fallback:** If the API returns a 422 (the line is not part of the diff), post as a regular PR comment:
-
-```bash
-gh pr comment {pr_number} --body "$BODY"
-```
+Used by the PR Review Path (step 8). See [references/inline-comment-format.md](references/inline-comment-format.md) for the exact `gh api` invocation and fallback.
 
 ---
 
 ## Report Template
 
-*(Local Branch Review Path only)*
-
-```markdown
-# Code Review — <branch> (<YYYY-MM-DD HH:MM>)
-
-> **File:** `review/<safe-branch>/report-<YYYYMMDDHHMMSS>.md`
-> **Based on:** full branch diff since diverging from `<base>`
-
-## Summary
-
-| Severity | Count |
-|----------|-------|
-| Critical | N |
-| High     | N |
-| Medium   | N |
-| Low      | N |
-
-<One paragraph: what the change does well, the biggest risk, recommended next step.>
+*(Local Branch Review Path only)* See [references/report-template.md](references/report-template.md) for the full template.
 
 ---
 
-## Findings
+## Agent Pattern Registry
 
-Each finding follows this structure, grouped under `### Critical`, `### High`, `### Medium`, `### Low` — omit any section with no entries.
-
-#### 1. <One-sentence summary>
-
-**File:** `path/to/file.ext` · **Line:** 42 · **Triage:** Fixed / To be fixed
-
-```<lang>
-// 5–15 lines of context; mark the problem line with // ←
-```
-
-**Problem:** What breaks, what input/state triggers it, what goes wrong.
-
-**Suggestion:**
-```<lang>
-// Corrected version
-```
-
-> Optional one-line tradeoff note.
-
----
-
-## What Looks Good
-
-- 2–4 specific strengths — name the design decision, not just "good code"
-```
+Used by the Analysis Phase (shared by both review paths) to persist and promote AI-characteristic findings, seeded from [assets/agent-patterns-seed.md](assets/agent-patterns-seed.md). See [references/agent-pattern-registry.md](references/agent-pattern-registry.md) for the file schema and the programmability-promotion criteria.
 
 ---
 
@@ -363,3 +213,5 @@ Each finding follows this structure, grouped under `### Critical`, `### High`, `
 **Scope:** every confirmed or plausible finding regardless of severity — no cap
 
 **Refuted findings:** drop silently — no struck-through text, no "considered but dismissed" note, no mention at all
+
+**Reviewer To-Do:** one bullet per scenario with no automated test, phrased as an action ("Manually test: ..."); include the section in every summary/report where it's non-empty, omit it entirely when empty — never print an empty heading
