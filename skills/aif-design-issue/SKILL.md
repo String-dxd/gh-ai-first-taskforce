@@ -43,8 +43,14 @@ Look for:
 1. **Component library** — check CLAUDE.md and `components/` or equivalent. Read components most likely relevant to this issue.
 2. **Component manifest** — if `.tfx/component-manifest.json` or equivalent exists, use it to determine which components are stable and available. Do not compose components outside this list without flagging it.
 3. **Existing similar UI** — find pages or features with structural similarity. Read those files for established layout and interaction patterns.
-4. **Design standards** — check CLAUDE.md for a referenced design standard, token scale, or component usage rules.
+4. **Design standards** — check CLAUDE.md for a referenced design standard, token scale, or component usage rules. If the project uses the TFX design standard, use [reference/design-standards-quickref.md](reference/design-standards-quickref.md) as the quick reference during implementation.
 5. **Reference prototype** — if the issue links to a prototype or deployed app, note the URL. The main codebase is authoritative; the prototype is visual reference only.
+6. **Accessibility baseline** — check whether `@axe-core/playwright` is configured globally:
+   - Look for `@axe-core/playwright` in `package.json` (dependencies or devDependencies).
+   - Look for a global fixture or `beforeEach` using `injectAxe` / `checkA11y` in the Playwright config or a shared test setup file.
+   - **Configured:** note it — E2E tests generated in Step 7 inherit the accessibility check automatically. No per-test setup needed.
+   - **Not configured:** surface this before writing any tests:
+     > "axe-playwright is not configured globally. Accessibility checks should run on every UI change, not just the tests this skill generates. Set it up once in your Playwright global setup — see the [Deterministic checks section in design-standards-quickref.md](reference/design-standards-quickref.md#deterministic-checks) for the install command and setup snippet."
 
 If no component library or design reference is found:
 
