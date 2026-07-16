@@ -1,16 +1,13 @@
 ---
 name: aif-design-issue
-description: Use when a designer or engineer needs to produce a design for a GitHub issue before implementation. Reads the acceptance criteria, explores existing components and patterns in the codebase, maps each scenario to design decisions, and produces either an implemented design branch (for designers) or a design spec document (for engineers). Triggered by "design this issue", "design spec", "design before implementing", "no designer", "prototype this feature".
+description: Use when a designer or engineer needs to produce a design for a GitHub issue before implementation. Reads the acceptance criteria, explores existing components and patterns in the codebase, maps each scenario to design decisions, implements the design in a branch, and opens a draft PR as handoff. Triggered by "design this issue", "design spec", "design before implementing", "no designer", "prototype this feature".
 ---
 
 ## Overview
 
-This skill runs a structured design phase before implementation. It works for two audiences:
+This skill runs a structured design phase before implementation. It is for designers and engineers alike — both follow the same process: read the acceptance criteria, explore existing patterns, implement the design scenario by scenario, and open a draft PR as the handoff artifact.
 
-- **Designer:** produces an implemented design in a `design/` branch, ready for user testing and handoff to an engineer via PR.
-- **Engineer (no designer available):** produces a `design-spec.md` that maps each acceptance criteria scenario to component choices, layout, states, and interactions — making the design decisions explicit before coding begins.
-
-Both paths read the acceptance criteria first (not screenshots), explore existing codebase patterns, and flag scenarios that need user validation before implementation.
+The output is always a `design/` branch with an implemented UI and a `design-spec.md` that records every decision made during the design phase.
 
 ---
 
@@ -28,21 +25,12 @@ From the issue, extract:
 - Design assets section (reference screenshots, deployed links, prototype repo links)
 - Technical context section (any components or patterns already identified during grooming)
 
-## Step 2: Identify who is running this skill
-
-Ask:
-
-> "Are you a designer building the design in the codebase, or an engineer producing a design spec to guide implementation?"
-
-- **Designer** → continue to Step 3, then follow the Designer path from Step 6 onward.
-- **Engineer** → continue to Step 3, then follow the Engineer path from Step 6 onward.
-
-## Step 3: Explore the design context
+## Step 2: Explore the design context
 
 Before making any design decisions, explore the codebase for existing patterns. Look for:
 
 1. **Component library** — check CLAUDE.md and `components/` or equivalent directories. Read the components most likely relevant to this issue (tables, cards, modals, form fields, stat cards, filters).
-2. **Existing similar UI** — search for existing pages or features that share structural similarity with this issue's scenarios. Read those files to understand established layout patterns.
+2. **Existing similar UI** — search for existing pages or features that share structural similarity with this issue's scenarios. Read those files to understand established layout and interaction patterns.
 3. **Design standards** — check CLAUDE.md for any referenced design standard document or component usage rules.
 4. **Reference prototype** — if the issue or comments link to a prototype repo or deployed prototype, note the URL for the user. Do not rely on it as a source of truth for components — the main codebase is authoritative.
 
@@ -50,7 +38,7 @@ If none of these yield useful context, surface the gap:
 
 > "I couldn't find a component library or design reference in this codebase. Before continuing, point me to: (a) the component library path or package, and (b) any design standard document."
 
-## Step 4: Map each AC scenario to design decisions
+## Step 3: Map each AC scenario to design decisions
 
 For each acceptance criteria scenario, produce:
 
@@ -62,66 +50,22 @@ For each acceptance criteria scenario, produce:
 | **Interactions** | User actions and what they trigger |
 | **New pattern?** | Yes / No — does this scenario require a component or layout not present in the codebase |
 
-## Step 5: Evaluate validation needs
+## Step 4: Evaluate validation needs
 
 Flag any scenario marked "New pattern? Yes" or that introduces a new user flow:
 
 > "This scenario introduces [X], which doesn't appear in the existing codebase. Validate it with a user or someone user-adjacent before marking the implementation ready for review."
 
-Produce a validation checklist — one item per flagged scenario. Both the designer and engineer will carry this checklist forward.
+Produce a validation checklist — one item per flagged scenario. This checklist is carried into the `design-spec.md` and the draft PR.
 
----
-
-## Step 6 (Designer path): Create a design branch and implement
-
-Create a `design/` branch from main:
+## Step 5: Create the design branch
 
 ```sh
 git checkout main && git pull
 git checkout -b design/<issue-slug>
 ```
 
-Work through the acceptance criteria scenarios in order. For each:
-
-1. Implement the UI using Claude Code, explicitly referencing existing components and the design standard identified in Step 3.
-2. Review the rendered result for micro-interaction correctness: column alignment, spacing, restricted states, disabled states, empty states. Correct anything that doesn't match the scenario's acceptance criteria.
-3. Commit before moving to the next scenario.
-
-### User testing (for flagged scenarios)
-
-For any scenario on the validation checklist, set up a local tunnel so users can access the running app:
-
-1. Start the dev server: `pnpm dev` (or the equivalent start command in CLAUDE.md).
-2. In a second terminal, start a tunnel:
-   - ngrok: `ngrok http <port>`
-   - localtunnel: `lt --port <port>`
-3. Share the tunnel URL with the user or user-adjacent colleague. Keep the dev server running for the duration of the session.
-4. After the session, note the feedback and any design changes needed before committing.
-
-### Open a draft PR as handoff
-
-When all scenarios are implemented and the validation checklist is addressed (or explicitly deferred with a reason):
-
-```sh
-gh label create "skill:aif-design-issue" --color ededed --description "Designed with the aif-design-issue skill" 2>/dev/null || true
-
-gh pr create --draft \
-  --title "design: <issue title>" \
-  --label "skill:aif-design-issue" \
-  --body-file /tmp/design-pr-body.md
-```
-
-PR body (`/tmp/design-pr-body.md`) should include:
-- Link to the issue this design addresses
-- Design decisions log: component choices made and why
-- Screenshots of each key state (attach after capturing from the local dev server)
-- Validation checklist: which scenarios were user-tested, which were deferred and why
-
----
-
-## Step 6 (Engineer path): Produce a design spec
-
-Write `design-spec.md` to the current working directory (or the issue branch if one already exists):
+Write `design-spec.md` to the branch root and commit it before any UI work begins:
 
 ```markdown
 # Design spec: <issue title>
@@ -143,14 +87,73 @@ Write `design-spec.md` to the current working directory (or the issue branch if 
 - [ ] <Scenario>: <what to validate and with whom, before PR is marked ready for review>
 
 ## Design decisions log
-- <decision>: <rationale>
+<!-- Updated throughout implementation as judgment calls are made -->
 ```
 
-Present the spec and ask for confirmation:
+Commit:
+```sh
+git add design-spec.md
+git commit -m "design(<scope>): add design spec for <issue title>"
+```
 
-> "Does this match your understanding of what needs to be built? Make any corrections before we proceed to implementation."
+## Step 6: Implement the design
 
-Once confirmed, the engineer can proceed to `aif-implement-issue` using this spec as additional context alongside the issue.
+Work through the acceptance criteria scenarios in order. For each:
+
+1. Implement the UI using Claude Code, explicitly referencing existing components and the design standard identified in Step 2.
+2. Review the rendered result for micro-interaction correctness: column alignment, spacing, restricted states, disabled states, empty states. Correct anything that doesn't match the scenario's acceptance criteria.
+3. Update `design-spec.md` — add any judgment calls made during implementation to the decisions log.
+4. Commit before moving to the next scenario.
+
+## Step 7: User testing (for flagged scenarios)
+
+For any scenario on the validation checklist, set up a local tunnel so users can access the running app on their own device:
+
+1. Start the dev server (use the command from CLAUDE.md, or the project's standard dev command).
+2. Start a tunnel — ask the user which tool they prefer:
+   - **ngrok:** `ngrok http <port>` (requires a free ngrok account)
+   - **localtunnel:** `lt --port <port>` (no account needed: `npx localtunnel --port <port>`)
+3. Share the tunnel URL. Keep the dev server running for the duration of the testing session.
+4. After the session, note the feedback. Make any design changes before the next commit. Update `design-spec.md` with what was validated and the outcome.
+
+## Step 8: Open a draft PR as handoff
+
+When all scenarios are implemented and the validation checklist is addressed (or explicitly deferred with a reason recorded in `design-spec.md`):
+
+```sh
+gh label create "skill:aif-design-issue" --color ededed --description "Designed with the aif-design-issue skill" 2>/dev/null || true
+```
+
+Write the PR body to `/tmp/design-pr-body.md`, then:
+
+```sh
+gh pr create --draft \
+  --title "design: <issue title>" \
+  --label "skill:aif-design-issue" \
+  --body-file /tmp/design-pr-body.md
+```
+
+PR body structure:
+
+```markdown
+Designs #<issue number>
+
+## Summary
+<!-- What was designed and the key decisions made -->
+
+## Validation
+<!-- Which scenarios were user-tested, which were deferred and why -->
+
+## Screenshots
+<!-- Attach screenshots of each key state from the local dev server -->
+
+---
+*🤖 Generated with aif-design-issue*
+```
+
+- **If the command succeeds:** print the PR URL.
+- **If `gh` is not found:** render the PR title and body as markdown and instruct the user to create the draft PR manually.
+- **If the command fails for any other reason:** surface the error and stop.
 
 ---
 
@@ -158,5 +161,6 @@ Once confirmed, the engineer can proceed to `aif-implement-issue` using this spe
 
 - Read acceptance criteria before looking at reference screenshots. Screenshots are context; the AC scenarios are the source of truth for what to design.
 - Never design outside the acceptance criteria — every design decision must map to at least one scenario.
-- Use existing components before proposing new ones. If a new component is genuinely required, flag it explicitly.
-- Do not implement during the design phase (Engineer path). The design spec feeds `aif-implement-issue`; mixing the two produces unreviewed code.
+- Use existing components before proposing new ones. If a new component is genuinely required, flag it explicitly in the design decisions log.
+- The design spec is a live document — update it throughout implementation, not just at the start.
+- Do not open the PR as ready for review until every item on the validation checklist is either addressed or explicitly deferred with a reason.
