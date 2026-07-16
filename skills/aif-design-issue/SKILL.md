@@ -15,9 +15,10 @@ Design progress:
 - [ ] Step 4: Produce the design plan (new page/flow or modification)
 - [ ] Step 5: Human gate — approve the plan
 - [ ] Step 6: Create design branch and commit design-spec.md
-- [ ] Step 7: Implement each scenario
-- [ ] Step 8: User test flagged scenarios
-- [ ] Step 9: Open draft PR as handoff
+- [ ] Step 7: Implement each scenario with E2E test
+- [ ] Step 8: Run full E2E suite and fix failures
+- [ ] Step 9: User test flagged scenarios
+- [ ] Step 10: Open draft PR as handoff
 ```
 
 ---
@@ -78,6 +79,7 @@ Expand the chosen option into a full plan:
 - **Async states** — for every async action, name the loading, success, and error states, and which component or pattern handles each
 - **Flow map** (for multi-step interactions) — entry points, the done state, every exit (back, cancel, abandon), what happens to in-progress work on interruption, and how partial completion is resumed
 - **Copy outline** — headings, labels, error messages. Write these now, not during implementation. Error messages follow the anatomy: what happened → what it means → what to do next
+- **E2E test mapping** — for each AC scenario, name the E2E test that will verify it: what it navigates to, what it interacts with, and what observable outcome it asserts
 - **Validation needs** — flag any scenario that introduces a new pattern or new user flow (see below)
 
 ### Modification — scoped plan
@@ -106,14 +108,15 @@ git add design-spec.md
 git commit -m "design(<scope>): add design spec for <issue title>"
 ```
 
-## Step 7: Implement each scenario
+## Step 7: Implement each scenario with E2E test
 
 Work through the scenarios in order. For each:
 
 1. Implement the UI referencing existing components and the design standard from Step 2.
-2. Apply the non-negotiables and quality checks below before committing.
-3. Update the decisions log in `design-spec.md` with judgment calls made.
-4. Commit before moving to the next scenario.
+2. Apply the non-negotiables and quality checks below.
+3. Write the E2E test for this scenario, mapped from the plan's E2E test mapping. The test must assert user-observable outcomes (what appears on screen, what the user can do) — not implementation details. Confirm the new test passes before continuing.
+4. Update the decisions log in `design-spec.md` with judgment calls made.
+5. Commit the UI change and its E2E test together before moving to the next scenario.
 
 ### Non-negotiables (apply to every scenario)
 
@@ -159,7 +162,19 @@ The default AI aesthetic is a defect. Before committing each scenario:
 - Cards only for interactive units — static content grouped with spacing and dividers, not card chrome
 - Complex multi-section tasks get a page, not a modal
 
-## Step 8: User test flagged scenarios
+## Step 8: Run full E2E suite and fix failures
+
+Once all scenarios are implemented, run the full E2E suite — not just the newly added tests. Use the command from CLAUDE.md, or the project's standard E2E command (e.g. `pnpm test:e2e`, `npx playwright test`).
+
+For each failing test, determine its cause before acting:
+
+- **Outdated test** — the test covered UI that the design changed (different copy, new layout, removed element). Update the test to match the new design and confirm it passes. Record the update in `design-spec.md` under the decisions log.
+- **Real regression** — the design broke behaviour that should still work. Fix the implementation, not the test. Do not delete or skip a failing test to make the suite pass.
+- **Flaky test** — the test is intermittent and unrelated to this change. Note it explicitly; do not let it block the PR, but do not silently ignore it either.
+
+All tests — new and pre-existing — must pass before proceeding. Do not open the PR with a failing suite.
+
+## Step 9: User test flagged scenarios
 
 For any scenario on the validation checklist:
 
@@ -172,7 +187,7 @@ For any scenario on the validation checklist:
 3. Share the tunnel URL. Keep the dev server running for the session.
 4. After the session: record feedback, make design changes, update `design-spec.md` with what was validated and the outcome, then commit.
 
-## Step 9: Open a draft PR as handoff
+## Step 10: Open a draft PR as handoff
 
 Once all scenarios are implemented and every validation checklist item is addressed or explicitly deferred with a reason recorded in `design-spec.md`:
 

@@ -15,6 +15,7 @@
 - **States:** ...
 - **Interactions:** ...
 - **New pattern?** Yes / No
+- **E2E test:** <what it navigates to, interacts with, and asserts>
 
 <!-- Repeat for each scenario -->
 
