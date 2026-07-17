@@ -10,9 +10,13 @@ Designs #<issue number>
 |----------|-----------|--------|
 | <Scenario name> | `<path/to/test.spec.ts>` | ✅ / ❌ |
 
-## Validation
+## User testing
 
-<!-- Which scenarios were user-tested, which were deferred and why -->
+| Scenario | Recommendation | Reason |
+|----------|---------------|--------|
+| <Scenario name> | Strongly recommended / Can defer | <reason> |
+
+<!-- Run `aif-user-test` to set up sessions for scenarios marked "Strongly recommended". -->
 
 ## Screenshots
 

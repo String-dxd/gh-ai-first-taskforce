@@ -17,7 +17,7 @@ Design progress:
 - [ ] Step 6: Create design branch and commit design-spec.md
 - [ ] Step 7: Implement each scenario with E2E test
 - [ ] Step 8: Run full E2E suite and fix failures
-- [ ] Step 9: User test flagged scenarios
+- [ ] Step 9: Assess user testing needs and record recommendation
 - [ ] Step 10: Open draft PR as handoff
 ```
 
@@ -197,22 +197,28 @@ For each failing test, determine its cause before acting:
 
 All tests — new and pre-existing — must pass before proceeding. Do not open the PR with a failing suite.
 
-## Step 9: User test flagged scenarios
+## Step 9: Assess user testing needs
 
-For any scenario on the validation checklist:
+For each scenario on the validation checklist in `design-spec.md`, apply these criteria:
 
-1. Start the dev server (use the command from CLAUDE.md or the project's standard dev command).
-2. Start a tunnel — use **localtunnel** by default (no account needed):
-   ```sh
-   npx localtunnel --port <port>
-   ```
-   If the user already has ngrok: `ngrok http <port>`.
-3. Share the tunnel URL. Keep the dev server running for the session.
-4. After the session: record feedback, make design changes, update `design-spec.md` with what was validated and the outcome, then commit.
+| Criterion | Recommendation |
+|-----------|---------------|
+| New pattern not seen elsewhere in the codebase | Strongly recommended |
+| New user flow (not just a new component) | Strongly recommended |
+| Destructive or irreversible action | Strongly recommended |
+| Modification to existing UI with clear AC | Can defer |
+
+Produce a table — one row per flagged scenario — and include it in the PR body (Step 10):
+
+| Scenario | Recommendation | Reason |
+|----------|---------------|--------|
+| `<scenario name>` | Strongly recommended / Can defer | `<one sentence>` |
+
+When ready to run a session, use `aif-user-test`.
 
 ## Step 10: Open a draft PR as handoff
 
-Once all scenarios are implemented and every validation checklist item is addressed or explicitly deferred with a reason recorded in `design-spec.md`, write the PR body to `/tmp/design-pr-body.md` using the template in [reference/pr-body-template.md](reference/pr-body-template.md).
+Once all scenarios are implemented and the Step 9 user testing assessment is complete, write the PR body to `/tmp/design-pr-body.md` using the template in [reference/pr-body-template.md](reference/pr-body-template.md).
 
 Fill the acceptance criteria table with one row per AC scenario: the scenario name, the path to its E2E test file, and whether it passed (✅) or failed (❌) in the Step 8 run. Every row must be filled — do not omit scenarios or leave the pass/fail column blank.
 
@@ -241,4 +247,4 @@ See [reference/pr-body-template.md](reference/pr-body-template.md) for the PR bo
 - Use existing components before proposing new ones. Flag new components explicitly.
 - Write copy during implementation — not as a cleanup pass afterward.
 - `design-spec.md` is a live document — update it throughout implementation.
-- Do not open the PR as ready for review until every validation checklist item is addressed or deferred with a reason.
+- Do not open the PR as ready for review until the Step 9 user testing assessment is recorded in the PR body.
