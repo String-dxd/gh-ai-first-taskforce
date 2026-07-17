@@ -186,7 +186,12 @@ When ready to run a session, use `aif-user-test`.
 
 Once all scenarios are implemented and the Step 9 user testing assessment is complete, write the PR body to `/tmp/design-pr-body.md` using the template in [reference/pr-body-template.md](reference/pr-body-template.md).
 
-Fill the acceptance criteria table with one row per AC scenario: the scenario name, the path to its E2E test file, and whether it passed (✅) or failed (❌) in the Step 8 run. Every row must be filled — do not omit scenarios or leave the pass/fail column blank.
+Fill the following sections from the template — every row and checkbox must be filled:
+
+- **Acceptance criteria table** — one row per AC scenario: scenario name, E2E test file path, passed (✅) or failed (❌) from the Step 8 run.
+- **User testing table** — one row per flagged scenario from Step 9: scenario name, recommendation, reason.
+- **Designer review checklist, step 3** — replace the single placeholder checkbox with one checkbox per AC scenario name. The remaining checklist steps (4–10) are fixed and need no changes.
+- **Screenshots** — before/after table for modifications; inline screenshots per scenario for new pages.
 
 For the screenshots section, use the format determined by the surface type from Step 3:
 
