@@ -66,6 +66,74 @@ flowchart TD
 
 ---
 
+## Skill flow and artifacts
+
+```mermaid
+flowchart TD
+    A([Issue number or body]) --> B[Step 1: Fetch and parse\nextract AC scenarios · design assets · technical context]
+    B --> C[Step 2: Explore design context\ncomponent library · manifest · similar UI · standards · axe-playwright check]
+    C --> D[Step 3: Establish intent\npurpose · user and moment · surface type · done-criteria]
+
+    D --> E{Surface type?}
+
+    E -- New page or flow --> F[Diverge: 2-3 layout options\nrecommend one]
+    E -- Modification --> G[Scoped plan\naffected controls and regions only]
+
+    F --> H[Full plan\ninteractions · async states · flow map\ncopy outline · E2E mapping · validation needs]
+    G --> I[Scoped plan\nasync states · copy outline\nE2E mapping · validation needs]
+
+    H --> J[/"Step 5: Human gate\nshow plan · await approval"/]
+    I --> J
+
+    J -- Approved --> K["Step 6: Create design/issue-slug branch\ncommit design-spec.md 📄"]
+    J -- Changes requested --> H
+
+    K --> L[Step 7: Implement scenario]
+    L --> M["Apply checks\n📎 non-negotiables · layout · copy · anti-slop"]
+    M --> N{Multi-step\ninteraction?}
+    N -- Yes --> O["+ 📎 flow checks"]
+    N -- No --> P
+    O --> P[Write E2E test\nasserts user-observable outcomes]
+    P --> Q["Commit UI + test together 💾\nupdate decisions log in design-spec.md"]
+    Q --> R{More scenarios?}
+    R -- Yes --> L
+    R -- No --> S
+
+    S[Step 8: Run full E2E suite] --> T{Failures?}
+    T -- Outdated test --> U[Update test\nrecord in decisions log]
+    T -- Regression --> V[Fix implementation]
+    T -- Flaky --> W[Note explicitly\ndo not block]
+    T -- All pass --> X
+    U --> S
+    V --> S
+
+    X[Step 9: Assess user testing\none row per flagged scenario] --> Y
+
+    Y[/"Step 10: Open draft PR"/] --> Z
+
+    Z(["Draft PR 📋\ndesign-spec.md · E2E tests\nbefore/after screenshots · user testing recommendation"])
+```
+
+**Artifacts produced:**
+
+| Artifact | Created at | Lives in |
+|----------|------------|---------|
+| `design-spec.md` | Step 6, updated throughout Step 7 | Design branch |
+| E2E tests | Step 7, one per scenario | Design branch |
+| Draft PR | Step 10 | GitHub |
+
+**Reference files loaded during Step 7** (📎 marks):
+
+| File | Loaded when |
+|------|-------------|
+| [`checks-non-negotiables.md`](reference/checks-non-negotiables.md) | Always |
+| [`checks-layout.md`](reference/checks-layout.md) | Always |
+| [`checks-copy.md`](reference/checks-copy.md) | Always |
+| [`checks-anti-slop.md`](reference/checks-anti-slop.md) | Always |
+| [`checks-flow.md`](reference/checks-flow.md) | Multi-step interactions only |
+
+---
+
 ## Engineer-initiated flow
 
 Used when no designer is available to design the issue.
