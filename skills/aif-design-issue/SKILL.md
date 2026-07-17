@@ -49,8 +49,25 @@ Look for:
    - Look for `@axe-core/playwright` in `package.json` (dependencies or devDependencies).
    - Look for a global fixture or `beforeEach` using `injectAxe` / `checkA11y` in the Playwright config or a shared test setup file.
    - **Configured:** note it — E2E tests generated in Step 7 inherit the accessibility check automatically. No per-test setup needed.
-   - **Not configured:** surface this before writing any tests:
-     > "axe-playwright is not configured globally. Accessibility checks should run on every UI change, not just the tests this skill generates. Set it up once in your Playwright global setup — see the [Deterministic checks section in design-standards-quickref.md](reference/design-standards-quickref.md#deterministic-checks) for the install command and setup snippet."
+   - **Not configured:** inform the user in plain terms, then install it:
+     > "I'll add an accessibility checker to this project — it automatically flags contrast, keyboard, and labelling issues in every test going forward. Installing now."
+
+     ```sh
+     npm install --save-dev @axe-core/playwright
+     ```
+
+     Then add to the project's global Playwright setup file (e.g. `tests/fixtures.ts` or wherever `test.beforeEach` lives):
+
+     ```ts
+     import { checkA11y, injectAxe } from 'axe-playwright'
+
+     test.beforeEach(async ({ page }) => {
+       await injectAxe(page)
+       await checkA11y(page, null, { runOnly: ['wcag2a', 'wcag2aa'] })
+     })
+     ```
+
+     Commit this change before writing any scenario tests.
 
 If no component library or design reference is found:
 
