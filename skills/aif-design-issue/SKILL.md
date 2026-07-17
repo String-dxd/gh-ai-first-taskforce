@@ -141,49 +141,15 @@ Work through the scenarios in order. For each:
 4. Update the decisions log in `design-spec.md` with judgment calls made.
 5. Commit the UI change and its E2E test together before moving to the next scenario.
 
-### Non-negotiables (apply to every scenario)
+### Checks to apply
 
-These never bend. If one seems impossible, surface it as a blocking question rather than making a judgment call:
+Load and apply each reference file as indicated:
 
-- **Contrast** — AA minimum (4.5:1 for normal text, 3:1 for large text and UI components)
-- **Keyboard reach** — every interactive element reachable by keyboard with a visible focus state
-- **Visible labels** — every form field has a visible label (not placeholder-only)
-- **Destructive actions** — show consequences and offer undo or confirmation before executing
-
-### Layout checks
-
-- One clear focal region — the user's primary task and its single primary action
-- Visual reading order matches the task's priority order
-- Density fits the task (data-dense tasks like tables warrant compact density; onboarding warrants more space)
-- Shared edges align
-
-### Flow checks (for multi-step interactions)
-
-- A non-destructive exit exists at every step; in-progress work is preserved or explicitly discarded on interruption — never silently lost
-- Every async state change has a loading, success, and error state
-- Keyboard traversal works across the whole journey, not just within each screen
-- Focus lands somewhere sensible after every step change
-
-### Copy checks
-
-Write copy during implementation, not as a cleanup pass:
-
-- State what happened → what it means → what to do next (error messages)
-- Active voice, second person, sentences under 25 words
-- No AI writing tells: no "seamless", "empower", "supercharge", "delve", em-dash chains, or filler openers ("In order to…", "It is important to note that…")
-- Name the action, not the input device: "select", "choose", "view" — not "click", "tap", "press"
-
-### Anti-slop checks
-
-The default AI aesthetic is a defect. Before committing each scenario:
-
-- No purple or violet gradients
-- No nested cards (use space, type, and dividers to group instead)
-- No grids of identical cards as a default layout
-- No bounce or elastic easing on interface elements
-- No decorative animations on critical paths
-- Cards only for interactive units — static content grouped with spacing and dividers, not card chrome
-- Complex multi-section tasks get a page, not a modal
+- [reference/checks-non-negotiables.md](reference/checks-non-negotiables.md) — always
+- [reference/checks-layout.md](reference/checks-layout.md) — always
+- [reference/checks-copy.md](reference/checks-copy.md) — always
+- [reference/checks-anti-slop.md](reference/checks-anti-slop.md) — always
+- [reference/checks-flow.md](reference/checks-flow.md) — only if Step 3 identified this as a multi-step interaction
 
 ## Step 8: Run full E2E suite and fix failures
 
