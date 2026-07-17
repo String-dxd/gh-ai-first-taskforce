@@ -20,7 +20,12 @@ Designs #<issue number>
 
 ## Screenshots
 
-<!-- Attach screenshots of each key state captured from the local dev server -->
+<!-- Modification: use the before/after table below — one row per scenario.
+     New page or flow: replace the table with inline screenshots under each scenario heading. -->
+
+| Scenario | Before | After |
+|----------|--------|-------|
+| <Scenario name> | <!-- screenshot --> | <!-- screenshot --> |
 
 ---
 
