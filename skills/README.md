@@ -11,3 +11,4 @@ Claude Code skills installed by `gh ai-first-taskforce setup`.
 | [aif-lint-setup](aif-lint-setup/SKILL.md) | Sets up linting and/or formatting (ESLint, oxlint, Biome, Prettier, oxfmt, golangci-lint, shellcheck) after detecting project types and auditing gaps. |
 | [aif-split-issue](aif-split-issue/SKILL.md) | Decomposes a GitHub issue into atomic child issues, each sized for a single coding-agent PR. |
 | [aif-update-npm-dependencies](aif-update-npm-dependencies/SKILL.md) | Audits and updates vulnerable JS/TS dependencies across npm, pnpm, Yarn, and Bun with a 7-day release cooldown. |
+| [aif-user-test](aif-user-test/SKILL.md) | Sets up a user testing session for a design branch — recommends who to interview, generates a session guide and feedback record, and starts a local tunnel so the participant can access the running app. |
